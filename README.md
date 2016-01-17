@@ -1,1 +1,1 @@
-# go-mapper
+# go-model
