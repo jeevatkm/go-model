@@ -1,10 +1,13 @@
 # go-model [![Build Status](https://travis-ci.org/jeevatkm/go-model.svg?branch=master)](https://travis-ci.org/jeevatkm/go-model) [![GoDoc](https://godoc.org/github.com/jeevatkm/go-model?status.svg)](https://godoc.org/github.com/jeevatkm/go-model) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Fast & Easy to use model mapper and utility methods for Go. Typical method(s) increases productivity and makes Go developement more fun :)
+Robust & Easy to use model mapper and model utility methods for Go. Typical method(s) increases productivity and makes Go developement more fun :)
 
 go-model tested with Go `v1.2` and above.
 
 **Development is in progress :)**
+
+## Features
+Will describe in detail after a initial release. I'm sure it will be very helpful, since its born from typical need while developing application and utility.
 
 <!-- ## Installation
 
