@@ -32,8 +32,8 @@ type SampleStruct struct {
 	TimePtr            *time.Time
 	Struct             SubInfo
 	StructPtr          *SubInfo
-	StructOmit         SubInfo  `model:",omitnested"`
-	StructPtrOmit      *SubInfo `model:",omitnested"`
+	StructOmit         SubInfo  `model:",notraverse"`
+	StructPtrOmit      *SubInfo `model:",notraverse"`
 	StructDeep         SubInfoDeep
 	StructDeepPtr      *SubInfoDeep
 	SubInfo
@@ -51,8 +51,8 @@ type SubInfoDeep struct {
 	YearPtr       *int
 	Struct        SubInfo
 	StructPtr     *SubInfo
-	StructOmit    SubInfo  `model:",omitnested"`
-	StructPtrOmit *SubInfo `model:",omitnested"`
+	StructOmit    SubInfo  `model:",notraverse"`
+	StructPtrOmit *SubInfo `model:",notraverse"`
 	SubInfo
 }
 
@@ -260,18 +260,18 @@ func TestCopyStructEmbededAndAttribute(t *testing.T) {
 	}
 
 	type SampleStruct struct {
-		SampleSubInfo
-		Level1Struct     SampleSubInfo
+		Level1Struct     SampleSubInfo `model:",notraverse"`
 		Level1StructPtr  *SampleSubInfo
-		Level1StructOmit *SampleSubInfo `model:",omitnested"`
+		Level1StructOmit *SampleSubInfo `model:",notraverse"`
 		CreatedTime      time.Time
+		SampleSubInfo
 	}
 
 	src := SampleStruct{
 		SampleSubInfo:    SampleSubInfo{Name: "This embeded struct", Year: 2016},
 		Level1Struct:     SampleSubInfo{Name: "This level 1 struct", Year: 2015},
 		Level1StructPtr:  &SampleSubInfo{Name: "This level 2 struct", Year: 2014},
-		Level1StructOmit: &SampleSubInfo{Name: "This omit nested traverse struct", Year: 2013},
+		Level1StructOmit: &SampleSubInfo{Name: "This nested no traverse struct", Year: 2013},
 		CreatedTime:      time.Now(),
 	}
 
@@ -440,7 +440,7 @@ func TestIsZero(t *testing.T) {
 
 func TestNonZeroCheck(t *testing.T) {
 	if IsZero(&SampleStruct{Time: time.Now()}) {
-		t.Error("SampleStruct omitnested - supposed to be zero")
+		t.Error("SampleStruct notraverse - supposed to be zero")
 	}
 
 	if IsZero(SampleStruct{SubInfo: SubInfo{Year: 2010}}) {

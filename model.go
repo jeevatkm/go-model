@@ -61,8 +61,8 @@ func IsZero(s interface{}) bool {
 
 		// embeded or nested struct
 		if isStruct(fv) {
-			if isNoTraverseType(fv) || isNoTraverse(f.Tag.Get(TagName)) {
 
+			if isNoTraverseType(fv) || isNoTraverse(f.Tag.Get(TagName)) {
 				// not traversing inside, but evaluating a value
 				if !IsFieldZero(fv) {
 					return false
@@ -205,7 +205,7 @@ func doCopy(dv, sv reflect.Value, zero bool) []error {
 						// This is struct kind, but we are not going to traverse
 						// since its in NoTraverseTypeList
 						// however we will take care of attribute value
-						dfv.Set(val(sfv))
+						dfv.Set(val(sfv, zero, true))
 					} else {
 						fmt.Println("We are going to traverse inside")
 
@@ -226,7 +226,7 @@ func doCopy(dv, sv reflect.Value, zero bool) []error {
 					continue // move on to next attribute
 				}
 
-				dfv.Set(val(sfv))
+				dfv.Set(val(sfv, zero, false))
 			} else {
 				errs = append(errs, fmt.Errorf("Field: '%v', can't set value in the dst", f.Name))
 			}
@@ -270,70 +270,82 @@ func isNoTraverseType(v reflect.Value) bool {
 	return false
 }
 
-func val(f reflect.Value) reflect.Value {
-	if isStruct(f) {
-		fmt.Println("VAL: We got the struct here")
-	}
+func val(f reflect.Value, zero, notraverse bool) reflect.Value {
+	var (
+		ptr bool
+		nf  reflect.Value
+	)
 
 	// take care interface{} and its actual value
 	if isInterface(f) {
 		f = valueOf(f.Interface())
 	}
 
-	// handling pointer value
+	// ptr, let's take a note
 	if isPtr(f) {
-		fmt.Println("Value is Ptr:", f.Interface(), f.Elem().Interface())
-		fmt.Println("==> Type:", f.Type(), "Type Elem:", f.Elem().Type())
-
-		fe := f.Elem()
-		nf := reflect.New(fe.Type())
-		nf.Elem().Set(fe)
-
-		if isStruct(f) {
-			fmt.Println("PTR: We got the struct here")
-		}
-
-		return nf
+		ptr = true
+		f = f.Elem()
 	}
 
-	// handling non-pointer value
-	fmt.Println("Value is not a Ptr:", f.Interface())
-	// regular attribute may hold pointer reference for eg.: map, slice
-	// typically its a interface{} scenario
+	fmt.Println("==> Pointer:", ptr)
+	fmt.Println("==> Type:", f.Type(), "Value:", f.Interface())
+
 	switch f.Kind() {
 	case reflect.Struct:
 		fmt.Println("VAL==>VAL: We got the struct here")
+		if notraverse {
+			fmt.Println("==> Ended up notraverse:", notraverse)
+			nf = f
+		} else {
+			nf = reflect.New(f.Type())
+			// TODO propagate errors
+			doCopy(nf, f, zero)
+			fmt.Printf("\n==> f type: %v, value: %#v\n", f.Type(), f)
+
+			// unwrap
+			nf = nf.Elem()
+			fmt.Println("==> Type nf:", nf.Type())
+		}
 	case reflect.Map:
 		fmt.Println("Map value count:", f.Len())
 		if f.Len() > 0 {
-			nf := reflect.MakeMap(f.Type())
+			nf = reflect.MakeMap(f.Type())
 
 			for _, key := range f.MapKeys() {
 				ov := f.MapIndex(key)
 				cv := reflect.New(ov.Type()).Elem()
-				cv.Set(val(ov))
+				cv.Set(val(ov, zero, false))
 				nf.SetMapIndex(key, cv)
 			}
-
-			return nf //indirect(nf)
 		}
 	case reflect.Slice:
 		fmt.Println("Slice value count:", f.Len())
 		if f.Len() > 0 {
-			nf := reflect.MakeSlice(f.Type(), f.Len(), f.Cap())
+			nf = reflect.MakeSlice(f.Type(), f.Len(), f.Cap())
 
 			for i := 0; i < f.Len(); i++ {
 				ov := f.Index(i)
 				cv := reflect.New(ov.Type()).Elem()
-				cv.Set(val(ov))
+				cv.Set(val(ov, zero, false))
 				nf.Index(i).Set(cv)
 			}
-
-			return nf //indirect(nf)
 		}
+	default:
+		nf = f
 	}
 
-	return f // return as-is
+	if ptr {
+		// wrap
+		fmt.Println("==> PTR ==> Type:", nf.Type(), "f:", f.Type())
+
+		o := reflect.New(nf.Type())
+		o.Elem().Set(nf)
+
+		fmt.Println("==> o type:", o.Type())
+		return o
+	}
+
+	return nf
 }
 
 func zeroVal(f reflect.Value) reflect.Value {
