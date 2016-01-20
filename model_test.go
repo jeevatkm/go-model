@@ -214,7 +214,7 @@ func TestCopyMapElements(t *testing.T) {
 		MapIntInt       map[int]int
 		MapStringInt    map[string]int
 		MapStringString map[string]string
-		MapStruct       map[string]SubInfo
+		MapStruct       map[string]SampleSubInfo
 		MapInterfaces   map[string]interface{}
 	}
 
@@ -222,18 +222,18 @@ func TestCopyMapElements(t *testing.T) {
 		MapIntInt:       map[int]int{1: 1001, 2: 1002, 3: 1003, 4: 1004},
 		MapStringInt:    map[string]int{"first": 1001, "second": 1002, "third": 1003, "forth": 1004},
 		MapStringString: map[string]string{"first": "1001", "second": "1002", "third": "1003"},
-		MapStruct: map[string]SubInfo{
-			"struct1": SubInfo{Name: "struct 1 value", Year: 2001},
-			"struct2": SubInfo{Name: "struct 2 value", Year: 2002},
-			"struct3": SubInfo{Name: "struct 3 value", Year: 2003},
+		MapStruct: map[string]SampleSubInfo{
+			"struct1": SampleSubInfo{Name: "struct 1 value", Year: 2001},
+			"struct2": SampleSubInfo{Name: "struct 2 value", Year: 2002},
+			"struct3": SampleSubInfo{Name: "struct 3 value", Year: 2003},
 		},
 		MapInterfaces: map[string]interface{}{
 			"inter1": 100001,
 			"inter2": "This is my interface string",
-			"inter3": SubInfo{Name: "struct 3 value", Year: 2003},
+			"inter3": SampleSubInfo{Name: "struct 3 value", Year: 2003},
 			"inter4": float32(1.6546565),
 			"inter5": float64(1.6546565),
-			"inter6": &SubInfo{Name: "struct 3 value", Year: 2006},
+			"inter6": &SampleSubInfo{Name: "struct 3 value", Year: 2006},
 		},
 	}
 
@@ -378,13 +378,28 @@ func TestCopyStructZeroValToDst(t *testing.T) {
 	assertEqual(t, 2016, dst.Year)
 }
 
-func TestAddToNoTraverselist(t *testing.T) {
+func TestAddNoTraverseType(t *testing.T) {
 	if !isNoTraverseType(valueOf(os.File{})) {
 		t.Errorf("Given type not found in omit list")
 	}
 
 	// Already registered
-	AddToNoTraverseList(os.File{})
+	AddNoTraverseType(os.File{})
+}
+
+func TestRemoveNoTraverseType(t *testing.T) {
+	RemoveNoTraverseType(os.File{})
+
+	if isNoTraverseType(valueOf(os.File{})) {
+		t.Errorf("Type should not exists in the NoTraverseTypeList")
+	}
+
+	AddNoTraverseType(os.File{})
+
+	// test again
+	if !isNoTraverseType(valueOf(os.File{})) {
+		t.Errorf("Type should exists in the NoTraverseTypeList")
+	}
 }
 
 func TestIsZero(t *testing.T) {

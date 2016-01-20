@@ -7,7 +7,6 @@ package model
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"reflect"
 	"strings"
@@ -25,24 +24,7 @@ var (
 	NoTraverseTypeList map[reflect.Type]bool
 )
 
-func init() {
-	NoTraverseTypeList = map[reflect.Type]bool{}
-
-	// Auto No Traverse struct list for not traversing DeepLevel
-	// However, attribute value will be evaluated by go-model
-	AddToNoTraverseList(
-		time.Time{},
-		&time.Time{},
-		os.File{},
-		&os.File{},
-		http.Request{},
-		&http.Request{},
-		http.Response{},
-		&http.Response{},
-	)
-}
-
-func AddToNoTraverseList(i ...interface{}) {
+func AddNoTraverseType(i ...interface{}) {
 	for _, v := range i {
 		t := typeOf(v)
 		if _, ok := NoTraverseTypeList[t]; ok {
@@ -50,7 +32,19 @@ func AddToNoTraverseList(i ...interface{}) {
 			continue
 		}
 
+		// not found, add it
 		NoTraverseTypeList[t] = true
+	}
+}
+
+func RemoveNoTraverseType(i ...interface{}) {
+	for _, v := range i {
+		t := typeOf(v)
+		if _, ok := NoTraverseTypeList[t]; ok {
+
+			// found, delete it
+			delete(NoTraverseTypeList, t)
+		}
 	}
 }
 
@@ -164,8 +158,16 @@ func doCopy(dv, sv reflect.Value, zero bool) []error {
 
 		fmt.Println("--------------------------")
 		fmt.Println("Processing field:", f.Name)
+		fmt.Println("Interface: ", sfv.Interface(), "Type:", sfv.Type(), "isStruct:", isStruct(sfv))
 
-		isVal := !IsFieldZero(sfv)
+		// check whether field is zero or not
+		var isVal bool
+		if isStruct(sfv) {
+			isVal = !IsZero(sfv)
+		} else {
+			isVal = !IsFieldZero(sfv)
+		}
+
 		if isVal || zero {
 			dfv := dv.FieldByName(f.Name)
 
@@ -188,6 +190,7 @@ func doCopy(dv, sv reflect.Value, zero bool) []error {
 				fmt.Println("Can set value:", f.Name)
 
 				// if src is zero make dst also zero
+				// since zero=true
 				if !isVal {
 					dfv.Set(zeroVal(dfv))
 
@@ -224,6 +227,8 @@ func doCopy(dv, sv reflect.Value, zero bool) []error {
 				}
 
 				dfv.Set(val(sfv))
+			} else {
+				errs = append(errs, fmt.Errorf("Field: '%v', can't set value in the dst", f.Name))
 			}
 		}
 	}
@@ -231,7 +236,29 @@ func doCopy(dv, sv reflect.Value, zero bool) []error {
 	return errs
 }
 
+//
+// go-model init
+//
+
+func init() {
+	NoTraverseTypeList = map[reflect.Type]bool{}
+
+	// Default NoTraverseTypeList
+	// --------------------------
+	// Auto No Traverse struct list for not traversing DeepLevel
+	// However, attribute value will be evaluated by go-model
+	AddNoTraverseType(
+		time.Time{},
+		&time.Time{},
+		os.File{},
+		&os.File{},
+		// it's better to add it to the list for appropriate type(s)
+	)
+}
+
+//
 // Non-exported methods of model library
+//
 
 func isNoTraverseType(v reflect.Value) bool {
 	t := indirect(v).Type()
@@ -244,6 +271,10 @@ func isNoTraverseType(v reflect.Value) bool {
 }
 
 func val(f reflect.Value) reflect.Value {
+	if isStruct(f) {
+		fmt.Println("VAL: We got the struct here")
+	}
+
 	// take care interface{} and its actual value
 	if isInterface(f) {
 		f = valueOf(f.Interface())
@@ -252,10 +283,16 @@ func val(f reflect.Value) reflect.Value {
 	// handling pointer value
 	if isPtr(f) {
 		fmt.Println("Value is Ptr:", f.Interface(), f.Elem().Interface())
+		fmt.Println("==> Type:", f.Type(), "Type Elem:", f.Elem().Type())
 
 		fe := f.Elem()
 		nf := reflect.New(fe.Type())
 		nf.Elem().Set(fe)
+
+		if isStruct(f) {
+			fmt.Println("PTR: We got the struct here")
+		}
+
 		return nf
 	}
 
@@ -264,21 +301,21 @@ func val(f reflect.Value) reflect.Value {
 	// regular attribute may hold pointer reference for eg.: map, slice
 	// typically its a interface{} scenario
 	switch f.Kind() {
+	case reflect.Struct:
+		fmt.Println("VAL==>VAL: We got the struct here")
 	case reflect.Map:
 		fmt.Println("Map value count:", f.Len())
 		if f.Len() > 0 {
 			nf := reflect.MakeMap(f.Type())
 
 			for _, key := range f.MapKeys() {
-				// getting actual map value
 				ov := f.MapIndex(key)
-				ovt := ov.Type()
-				cv := reflect.New(ovt).Elem()
+				cv := reflect.New(ov.Type()).Elem()
 				cv.Set(val(ov))
 				nf.SetMapIndex(key, cv)
 			}
 
-			return nf
+			return nf //indirect(nf)
 		}
 	case reflect.Slice:
 		fmt.Println("Slice value count:", f.Len())
@@ -287,13 +324,12 @@ func val(f reflect.Value) reflect.Value {
 
 			for i := 0; i < f.Len(); i++ {
 				ov := f.Index(i)
-				ovt := ov.Type()
-				cv := reflect.New(ovt).Elem()
+				cv := reflect.New(ov.Type()).Elem()
 				cv.Set(val(ov))
 				nf.Index(i).Set(cv)
 			}
 
-			return indirect(nf)
+			return nf //indirect(nf)
 		}
 	}
 
