@@ -26,7 +26,7 @@ var (
 
 func AddNoTraverseType(i ...interface{}) {
 	for _, v := range i {
-		t := typeOf(v)
+		t := reflect.TypeOf(v)
 		if _, ok := NoTraverseTypeList[t]; ok {
 			// already registered for no traverse, move on
 			continue
@@ -39,7 +39,7 @@ func AddNoTraverseType(i ...interface{}) {
 
 func RemoveNoTraverseType(i ...interface{}) {
 	for _, v := range i {
-		t := typeOf(v)
+		t := reflect.TypeOf(v)
 		if _, ok := NoTraverseTypeList[t]; ok {
 
 			// found, delete it
@@ -199,7 +199,7 @@ func doCopy(dv, sv reflect.Value, zero bool) []error {
 
 				// handle embeded/nested struct
 				if isStruct(sfv) {
-					fmt.Println("This is struct kind:", typeOf(sfv))
+					fmt.Println("This is struct kind:", dTypeOf(sfv))
 					if isNoTraverseType(sfv) || isNoTraverse(f.Tag.Get(TagName)) {
 						fmt.Println("We are not going to traverse")
 						// This is struct kind, but we are not going to traverse
@@ -261,7 +261,7 @@ func init() {
 //
 
 func isNoTraverseType(v reflect.Value) bool {
-	t := indirect(v).Type()
+	t := dTypeOf(v)
 
 	if _, ok := NoTraverseTypeList[t]; ok {
 		return true
@@ -313,8 +313,10 @@ func val(f reflect.Value, zero, notraverse bool) reflect.Value {
 
 			for _, key := range f.MapKeys() {
 				ov := f.MapIndex(key)
+				fmt.Println("||===> Map Type:", ov.Type(), isStruct(ov), dTypeOf(ov))
 				cv := reflect.New(ov.Type()).Elem()
-				cv.Set(val(ov, zero, false))
+				traverse := isNoTraverseType(ov) // TODO No traverse tag needs to handled
+				cv.Set(val(ov, zero, traverse))
 				nf.SetMapIndex(key, cv)
 			}
 		}
@@ -325,8 +327,10 @@ func val(f reflect.Value, zero, notraverse bool) reflect.Value {
 
 			for i := 0; i < f.Len(); i++ {
 				ov := f.Index(i)
+				fmt.Println("||===> Slice Type:", ov.Type(), isStruct(ov), dTypeOf(ov))
 				cv := reflect.New(ov.Type()).Elem()
-				cv.Set(val(ov, zero, false))
+				traverse := isNoTraverseType(ov) // TODO No traverse tag needs to handled
+				cv.Set(val(ov, zero, traverse))
 				nf.Index(i).Set(cv)
 			}
 		}
@@ -364,8 +368,11 @@ func isNoTraverse(tag string) bool {
 	return strings.Contains(tag, NoTraverse)
 }
 
-func typeOf(i interface{}) reflect.Type {
-	return reflect.TypeOf(i)
+func dTypeOf(v reflect.Value) reflect.Type {
+	if isInterface(v) {
+		v = valueOf(v.Interface())
+	}
+	return v.Type()
 }
 
 func valueOf(i interface{}) reflect.Value {
@@ -381,6 +388,10 @@ func isPtr(v reflect.Value) bool {
 }
 
 func isStruct(v reflect.Value) bool {
+	if isInterface(v) {
+		v = valueOf(v.Interface())
+	}
+
 	return indirect(v).Kind() == reflect.Struct
 }
 
