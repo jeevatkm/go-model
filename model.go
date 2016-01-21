@@ -19,7 +19,7 @@ const (
 	//
 	// For Example:
 	// ------------
-	// BookCount	int64		`model:"bookCount"`
+	// BookCount	int		`model:"bookCount"`
 	// ArchiveInfo	StoreInfo	`model:"archiveInfo,notraverse"`
 	TagName = "model"
 
@@ -76,12 +76,36 @@ func RemoveNoTraverseType(i ...interface{}) {
 	}
 }
 
+// IsZero method returns true if all the exported fields in a given struct
+// is a zero value. If its not struct then method returns false.
+//
+// A "model" tag with the value of "-" is ignored by library for processing.
+// 		For Example:
+//
+// 		// Field/Attribute is ignored by go-model processing
+// 		BookCount	int	`model:"-"`
+// 		BookCode	string	`model:"-"`
+//
+// A "model" tag value with the option of "notraverse"; library will not traverse
+// inside those struct object. However field value will be evaluated whether
+// its zero or not.
+// 		For Example:
+//
+// 		// Field/Attribute is not traversed but value is evaluated/processed
+// 		ArchiveInfo	BookArchive	`model:"archiveInfo,notraverse"`
+// 		Region		BookLocale	`model:",notraverse"`
+//
 func IsZero(s interface{}) bool {
 	if s == nil {
 		return true
 	}
 
 	sv := indirect(valueOf(s))
+
+	if !isStruct(sv) {
+		return false
+	}
+
 	fields := getFields(sv)
 
 	for _, f := range fields {
@@ -115,7 +139,37 @@ func IsZero(s interface{}) bool {
 	return true
 }
 
-func Copy(dst, src interface{}, zero bool) []error {
+// Copy method copies all the exported values from source struct into destination struct.
+// The "Name", "Type" and "Kind" is should match to qualify a copy. One exception though;
+// if the destination Field/Attribute type is "interface{}" then "Type" and "Kind" doesn't matter,
+// source value gets copied to that destination Field/Attribute.
+// 		src := SampleStruct{ /* source values goes here */ }
+// 		dst := SampleStruct{}
+//
+// 		// thrid param (copyZero) is very handy, it tells whether to copy zero or not into dst.
+// 		// its very helpful for partial put or patch update request scenarios.
+// 		model.Copy(&dst, src, true)
+//
+// Note: Copy process continues regardless of the case it qualify or not. Not qualified field(s)
+// gets added to '[]error' that you will get at the end.
+//
+// A "model" tag with the value of "-" is ignored by library for processing.
+// 		For Example:
+//
+// 		// Field/Attribute is ignored by go-model processing
+// 		BookCount	int	`model:"-"`
+// 		BookCode	string	`model:"-"`
+//
+// A "model" tag value with the option of "notraverse"; library will not traverse
+// inside those struct object. However field value will be evaluated whether
+// its zero or not.
+// 		For Example:
+//
+// 		// Field/Attribute is not traversed but value is evaluated/processed
+// 		ArchiveInfo	BookArchive	`model:"archiveInfo,notraverse"`
+// 		Region		BookLocale	`model:",notraverse"`
+//
+func Copy(dst, src interface{}, copyZero bool) []error {
 	var errs []error
 
 	sv := valueOf(src)
@@ -133,7 +187,7 @@ func Copy(dst, src interface{}, zero bool) []error {
 	}
 
 	// processing copy value(s)
-	errs = doCopy(dv, sv, zero)
+	errs = doCopy(dv, sv, copyZero)
 	if errs != nil {
 		return errs
 	}

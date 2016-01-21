@@ -773,6 +773,22 @@ func TestIsStructMethod(t *testing.T) {
 	assertEqual(t, true, isStruct(mv.MapIndex(keys[0])))
 }
 
+func TestIsZeroNotAStructInput(t *testing.T) {
+	result1 := IsZero(10001)
+	assertEqual(t, false, result1)
+
+	result2 := IsZero(map[string]int{"1": 101, "2": 102, "3": 103})
+	assertEqual(t, false, result2)
+
+	floatVar := float64(1.7367643)
+	result3 := IsZero(&floatVar)
+	assertEqual(t, false, result3)
+
+	str := "This is not a struct"
+	result4 := IsZero(&str)
+	assertEqual(t, false, result4)
+}
+
 func assertError(t *testing.T, err error) {
 	if err != nil {
 		t.Errorf("Error occurred [%v]", err)
