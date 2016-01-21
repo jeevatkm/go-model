@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	// go-model Tag name for attribute options.
+	// TagName is used to mention field/attribute options for
+	// go-model library.
 	//
 	// For Example:
 	// ------------
@@ -32,7 +33,7 @@ const (
 )
 
 var (
-	// go-model version #
+	// Version # of go-model library
 	Version = "0.1-beta"
 
 	// NoTraverseTypeList keeps track of no-traverse type list at library level
@@ -146,12 +147,17 @@ func IsZero(s interface{}) bool {
 // 		src := SampleStruct{ /* source values goes here */ }
 // 		dst := SampleStruct{}
 //
-// 		// thrid param (copyZero) is very handy, it tells whether to copy zero or not into dst.
-// 		// its very helpful for partial put or patch update request scenarios.
-// 		model.Copy(&dst, src, true)
+// 		// thrid param 'copyZero' tells whether to copy zero or not into destination struct.
+// 		// its very handy for partial put or patch update request scenarios, etc.
+// 		errs := model.Copy(&dst, src, true)
+// 		if errs != nil {
+// 			fmt.Println("Errors:", errs)
+// 		}
 //
-// Note: Copy process continues regardless of the case it qualify or not. Not qualified field(s)
+// Note:
+// [1] Copy process continues regardless of the case it qualify or not. Not qualified field(s)
 // gets added to '[]error' that you will get at the end.
+// [2] Slice3 type is not yet supported by Copy method.
 //
 // A "model" tag with the value of "-" is ignored by library for processing.
 // 		For Example:
