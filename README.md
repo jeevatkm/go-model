@@ -1,4 +1,4 @@
-# go-model [![Build Status](https://travis-ci.org/jeevatkm/go-model.svg?branch=master)](https://travis-ci.org/jeevatkm/go-model) [![Coverage Status](https://coveralls.io/repos/github/jeevatkm/go-model/badge.svg?branch=master)](https://coveralls.io/github/jeevatkm/go-model?branch=master) [![GoDoc](https://godoc.org/github.com/jeevatkm/go-model?status.svg)](https://godoc.org/github.com/jeevatkm/go-model) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+# go-model [![Build Status](https://travis-ci.org/jeevatkm/go-model.svg?branch=master)](https://travis-ci.org/jeevatkm/go-model) [![GoCover](http://gocover.io/_badge/github.com/jeevatkm/go-model)](http://gocover.io/github.com/jeevatkm/go-model) [![GoDoc](https://godoc.org/github.com/jeevatkm/go-model?status.svg)](https://godoc.org/github.com/jeevatkm/go-model) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Robust & Easy to use model mapper and model utility methods for Go. Typical method(s) increases productivity and makes Go developement more fun :)
 
