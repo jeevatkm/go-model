@@ -12,50 +12,6 @@ import (
 	"time"
 )
 
-type SampleStruct struct {
-	Integer            int
-	IntegerPtr         *int
-	String             string
-	StringPtr          *string
-	Boolean            bool
-	BooleanPtr         *bool
-	BooleanOmit        bool `model:"-"`
-	SliceString        []string
-	SliceStringPtr     *[]string
-	SliceStringPtrOmit *[]string `model:"-"`
-	SliceStringPtrStr  []*string
-	SliceStruct        []SubInfo
-	SliceStructPtr     []*SubInfo
-	SliceInt           []int
-	SliceIntPtr        []*int
-	Time               time.Time
-	TimePtr            *time.Time
-	Struct             SubInfo
-	StructPtr          *SubInfo
-	StructOmit         SubInfo  `model:",notraverse"`
-	StructPtrOmit      *SubInfo `model:",notraverse"`
-	StructDeep         SubInfoDeep
-	StructDeepPtr      *SubInfoDeep
-	SubInfo
-}
-
-type SubInfo struct {
-	Name string
-	Year int
-}
-
-type SubInfoDeep struct {
-	Name          string
-	NamePtr       *string `model:"-"`
-	Year          int     `model:"-"`
-	YearPtr       *int
-	Struct        SubInfo
-	StructPtr     *SubInfo
-	StructOmit    SubInfo  `model:",notraverse"`
-	StructPtrOmit *SubInfo `model:",notraverse"`
-	SubInfo
-}
-
 func TestCopyIntegerAndIntegerPtr(t *testing.T) {
 	type SampleStruct struct {
 		Int      int
@@ -117,9 +73,68 @@ func TestCopyStringAndStringPtr(t *testing.T) {
 	assertEqual(t, true, src.StringPtr != dst.StringPtr)
 }
 
-//
-// TODO for Boolean, float, etc
-//
+func TestCopyBooleanAndBooleanPtr(t *testing.T) {
+	type SampleStruct struct {
+		Boolean    bool
+		BooleanPtr *bool
+	}
+
+	boolPtr := true
+	src := SampleStruct{
+		Boolean:    true,
+		BooleanPtr: &boolPtr,
+	}
+
+	dst := SampleStruct{}
+
+	errs := Copy(&dst, &src, false)
+	if errs != nil {
+		t.Error("Error occurred while copying.")
+	}
+
+	logSrcDst(t, src, dst)
+
+	assertEqual(t, src.Boolean, dst.Boolean)
+	assertEqual(t, *src.BooleanPtr, *dst.BooleanPtr)
+	assertEqual(t, true, src.BooleanPtr != dst.BooleanPtr)
+}
+
+func TestCopyFloatAndFloatPtr(t *testing.T) {
+	type SampleStruct struct {
+		Float32    float32
+		Float64    float64
+		Float32Ptr *float32
+		Float64Ptr *float64
+	}
+
+	f32 := float32(0.1)
+	f64 := float64(0.2)
+
+	src := SampleStruct{
+		Float32:    float32(0.11),
+		Float32Ptr: &f32,
+		Float64:    float64(0.22),
+		Float64Ptr: &f64,
+	}
+
+	dst := SampleStruct{}
+
+	errs := Copy(&dst, &src, false)
+	if errs != nil {
+		t.Error("Error occurred while copying.")
+	}
+
+	logSrcDst(t, src, dst)
+
+	assertEqual(t, src.Float32, dst.Float32)
+	assertEqual(t, *src.Float32Ptr, *dst.Float32Ptr)
+
+	assertEqual(t, src.Float64, dst.Float64)
+	assertEqual(t, *src.Float64Ptr, *dst.Float64Ptr)
+
+	assertEqual(t, true, src.Float32Ptr != dst.Float32Ptr)
+	assertEqual(t, true, src.Float64Ptr != dst.Float64Ptr)
+}
 
 func TestCopySliceStringAndSliceStringPtr(t *testing.T) {
 	type SampleStruct struct {
@@ -148,12 +163,33 @@ func TestCopySliceStringAndSliceStringPtr(t *testing.T) {
 }
 
 func TestCopySliceElementsPtr(t *testing.T) {
+	type SampleSubInfo2 struct {
+		SliceIntPtr    []*int
+		SliceInt64Ptr  []*int64
+		SliceStringPtr []*string
+		SliceFloat32   []*float32
+		SliceFloat64   []*float64
+		SliceInterface []interface{}
+	}
+
+	type SampleSubInfo1 struct {
+		SliceIntPtr    []*int
+		SliceInt64Ptr  []*int64
+		SliceStringPtr []*string
+		SliceFloat32   []*float32
+		SliceFloat64   []*float64
+		SliceInterface []interface{}
+		Level2         SampleSubInfo2
+	}
+
 	type SampleStruct struct {
 		SliceIntPtr    []*int
 		SliceInt64Ptr  []*int64
 		SliceStringPtr []*string
 		SliceFloat32   []*float32
 		SliceFloat64   []*float64
+		SliceInterface []interface{}
+		Level1         SampleSubInfo1
 	}
 
 	i1 := int(1)
@@ -182,6 +218,23 @@ func TestCopySliceElementsPtr(t *testing.T) {
 		SliceStringPtr: []*string{&str1, &str2, &str3},
 		SliceFloat32:   []*float32{&f1, &f2, &f3},
 		SliceFloat64:   []*float64{&f11, &f12, &f13},
+		SliceInterface: []interface{}{&i1, i11, &str1, &f1, f11},
+		Level1: SampleSubInfo1{
+			SliceIntPtr:    []*int{&i1, &i2, &i3},
+			SliceInt64Ptr:  []*int64{&i11, &i12, &i13},
+			SliceStringPtr: []*string{&str1, &str2, &str3},
+			SliceFloat32:   []*float32{&f1, &f2, &f3},
+			SliceFloat64:   []*float64{&f11, &f12, &f13},
+			SliceInterface: []interface{}{&i1, i11, &str1, &f1, f11},
+			Level2: SampleSubInfo2{
+				SliceIntPtr:    []*int{&i1, &i2, &i3},
+				SliceInt64Ptr:  []*int64{&i11, &i12, &i13},
+				SliceStringPtr: []*string{&str1, &str2, &str3},
+				SliceFloat32:   []*float32{&f1, &f2, &f3},
+				SliceFloat64:   []*float64{&f11, &f12, &f13},
+				SliceInterface: []interface{}{&i1, i11, &str1, &f1, f11},
+			},
+		},
 	}
 
 	dst := SampleStruct{}
@@ -193,16 +246,63 @@ func TestCopySliceElementsPtr(t *testing.T) {
 
 	logSrcDst(t, src, dst)
 
+	// Level 0 assertion
+	assertEqual(t, true, src.SliceIntPtr[0] != dst.SliceIntPtr[0])
 	assertEqual(t, src.SliceIntPtr, dst.SliceIntPtr)
-	assertEqual(t, src.SliceInt64Ptr, dst.SliceInt64Ptr)
-	assertEqual(t, src.SliceStringPtr, dst.SliceStringPtr)
-	assertEqual(t, src.SliceFloat32, dst.SliceFloat32)
-	assertEqual(t, src.SliceFloat64, dst.SliceFloat64)
-}
 
-//
-// TODO slice with interface{}, etc.
-//
+	assertEqual(t, true, src.SliceInt64Ptr[0] != dst.SliceInt64Ptr[0])
+	assertEqual(t, src.SliceInt64Ptr, dst.SliceInt64Ptr)
+
+	assertEqual(t, true, src.SliceStringPtr[0] != dst.SliceStringPtr[0])
+	assertEqual(t, src.SliceStringPtr, dst.SliceStringPtr)
+
+	assertEqual(t, true, src.SliceFloat32[0] != dst.SliceFloat32[0])
+	assertEqual(t, src.SliceFloat32, dst.SliceFloat32)
+
+	assertEqual(t, true, src.SliceFloat64[0] != dst.SliceFloat64[0])
+	assertEqual(t, src.SliceFloat64, dst.SliceFloat64)
+
+	assertEqual(t, true, src.SliceInterface[0] != dst.SliceInterface[0])
+	assertEqual(t, src.SliceInterface, dst.SliceInterface)
+
+	// Level 1 assertion
+	assertEqual(t, true, src.Level1.SliceIntPtr[0] != dst.Level1.SliceIntPtr[0])
+	assertEqual(t, src.Level1.SliceIntPtr, dst.Level1.SliceIntPtr)
+
+	assertEqual(t, true, src.Level1.SliceInt64Ptr[0] != dst.Level1.SliceInt64Ptr[0])
+	assertEqual(t, src.Level1.SliceInt64Ptr, dst.Level1.SliceInt64Ptr)
+
+	assertEqual(t, true, src.Level1.SliceStringPtr[0] != dst.Level1.SliceStringPtr[0])
+	assertEqual(t, src.Level1.SliceStringPtr, dst.Level1.SliceStringPtr)
+
+	assertEqual(t, true, src.Level1.SliceFloat32[0] != dst.Level1.SliceFloat32[0])
+	assertEqual(t, src.Level1.SliceFloat32, dst.Level1.SliceFloat32)
+
+	assertEqual(t, true, src.Level1.SliceFloat64[0] != dst.Level1.SliceFloat64[0])
+	assertEqual(t, src.Level1.SliceFloat64, dst.Level1.SliceFloat64)
+
+	assertEqual(t, true, src.Level1.SliceInterface[0] != dst.Level1.SliceInterface[0])
+	assertEqual(t, src.Level1.SliceInterface, dst.Level1.SliceInterface)
+
+	// Level 2 assertion
+	assertEqual(t, true, src.Level1.Level2.SliceIntPtr[0] != dst.Level1.Level2.SliceIntPtr[0])
+	assertEqual(t, src.Level1.SliceIntPtr, dst.Level1.SliceIntPtr)
+
+	assertEqual(t, true, src.Level1.Level2.SliceInt64Ptr[0] != dst.Level1.Level2.SliceInt64Ptr[0])
+	assertEqual(t, src.Level1.Level2.SliceInt64Ptr, dst.Level1.Level2.SliceInt64Ptr)
+
+	assertEqual(t, true, src.Level1.Level2.SliceStringPtr[0] != dst.Level1.Level2.SliceStringPtr[0])
+	assertEqual(t, src.Level1.Level2.SliceStringPtr, dst.Level1.Level2.SliceStringPtr)
+
+	assertEqual(t, true, src.Level1.Level2.SliceFloat32[0] != dst.Level1.Level2.SliceFloat32[0])
+	assertEqual(t, src.Level1.Level2.SliceFloat32, dst.Level1.Level2.SliceFloat32)
+
+	assertEqual(t, true, src.Level1.Level2.SliceFloat64[0] != dst.Level1.Level2.SliceFloat64[0])
+	assertEqual(t, src.Level1.Level2.SliceFloat64, dst.Level1.Level2.SliceFloat64)
+
+	assertEqual(t, true, src.Level1.Level2.SliceInterface[0] != dst.Level1.Level2.SliceInterface[0])
+	assertEqual(t, src.Level1.Level2.SliceInterface, dst.Level1.Level2.SliceInterface)
+}
 
 func TestCopyMapElements(t *testing.T) {
 	type SampleSubInfo struct {
@@ -260,19 +360,19 @@ func TestCopyStructEmbededAndAttribute(t *testing.T) {
 	}
 
 	type SampleStruct struct {
-		Level1Struct     SampleSubInfo `model:",notraverse"`
-		Level1StructPtr  *SampleSubInfo
-		Level1StructOmit *SampleSubInfo `model:",notraverse"`
-		CreatedTime      time.Time
+		Level1Struct           SampleSubInfo `model:",notraverse"`
+		Level1StructPtr        *SampleSubInfo
+		Level1StructNoTraverse *SampleSubInfo `model:",notraverse"`
+		CreatedTime            time.Time
 		SampleSubInfo
 	}
 
 	src := SampleStruct{
-		SampleSubInfo:    SampleSubInfo{Name: "This embeded struct", Year: 2016},
-		Level1Struct:     SampleSubInfo{Name: "This level 1 struct", Year: 2015},
-		Level1StructPtr:  &SampleSubInfo{Name: "This level 2 struct", Year: 2014},
-		Level1StructOmit: &SampleSubInfo{Name: "This nested no traverse struct", Year: 2013},
-		CreatedTime:      time.Now(),
+		SampleSubInfo:          SampleSubInfo{Name: "This embeded struct", Year: 2016},
+		Level1Struct:           SampleSubInfo{Name: "This level 1 struct", Year: 2015},
+		Level1StructPtr:        &SampleSubInfo{Name: "This level 2 struct", Year: 2014},
+		Level1StructNoTraverse: &SampleSubInfo{Name: "This nested no traverse struct", Year: 2013},
+		CreatedTime:            time.Now(),
 	}
 
 	dst := SampleStruct{}
@@ -294,7 +394,149 @@ func TestCopyStructEmbededAndAttribute(t *testing.T) {
 	assertEqual(t, src.Level1StructPtr.Year, dst.Level1StructPtr.Year)
 
 	assertEqual(t, true, src.CreatedTime == dst.CreatedTime)
-	assertEqual(t, src.Level1StructOmit.Year, dst.Level1StructOmit.Year)
+	assertEqual(t, src.Level1StructNoTraverse.Year, dst.Level1StructNoTraverse.Year)
+}
+
+func TestCopyStructEmbededAndAttributeDstPtr(t *testing.T) {
+	type SampleSubInfo struct {
+		Name string
+		Year int
+	}
+
+	type SampleStruct struct {
+		Level1Struct           SampleSubInfo `model:",notraverse"`
+		Level1StructPtr        *SampleSubInfo
+		Level1StructPtrZero    *SampleSubInfo
+		Level1StructNoTraverse *SampleSubInfo `model:",notraverse"`
+		CreatedTime            time.Time
+		SampleSubInfo
+	}
+
+	src := SampleStruct{
+		SampleSubInfo:          SampleSubInfo{Name: "This embeded struct", Year: 2016},
+		Level1Struct:           SampleSubInfo{Name: "This level 1 struct", Year: 2015},
+		Level1StructPtr:        &SampleSubInfo{Name: "This level 2 struct", Year: 2014},
+		Level1StructNoTraverse: &SampleSubInfo{Name: "This nested no traverse struct", Year: 2013},
+		CreatedTime:            time.Now(),
+	}
+
+	dst := SampleStruct{
+		Level1StructPtrZero: &SampleSubInfo{Name: "This level 1 struct ptr zero", Year: 2015},
+	}
+
+	errs := Copy(&dst, &src, true)
+	if errs != nil {
+		t.Error("Error occurred while copying.")
+	}
+
+	logSrcDst(t, src, dst)
+
+	assertEqual(t, src.Name, dst.Name)
+	assertEqual(t, src.Year, dst.Year)
+
+	assertEqual(t, src.Level1Struct.Name, dst.Level1Struct.Name)
+	assertEqual(t, src.Level1Struct.Year, dst.Level1Struct.Year)
+
+	assertEqual(t, src.Level1StructPtr.Name, dst.Level1StructPtr.Name)
+	assertEqual(t, src.Level1StructPtr.Year, dst.Level1StructPtr.Year)
+
+	assertEqual(t, true, src.CreatedTime == dst.CreatedTime)
+	assertEqual(t, src.Level1StructNoTraverse.Year, dst.Level1StructNoTraverse.Year)
+
+	assertEqual(t, true, dst.Level1StructPtrZero == nil)
+}
+
+func TestCopyStructEmbededAndAttributeMakeZeroInDst(t *testing.T) {
+	type SampleSubInfo struct {
+		Name string
+		Year int
+	}
+
+	type SampleStruct struct {
+		Level1Struct           SampleSubInfo `model:",notraverse"`
+		Level1StructPtr        *SampleSubInfo
+		Level1StructNoTraverse *SampleSubInfo `model:",notraverse"`
+		CreatedTime            time.Time
+		SampleSubInfo
+	}
+
+	src := SampleStruct{CreatedTime: time.Now()}
+
+	dst := SampleStruct{
+		SampleSubInfo:          SampleSubInfo{Name: "This embeded struct", Year: 2016},
+		Level1Struct:           SampleSubInfo{Name: "This level 1 struct", Year: 2015},
+		Level1StructPtr:        &SampleSubInfo{Name: "This level 2 struct", Year: 2014},
+		Level1StructNoTraverse: &SampleSubInfo{Name: "This nested no traverse struct", Year: 2013},
+	}
+
+	errs := Copy(&dst, &src, true)
+	if errs != nil {
+		fmt.Println(errs)
+		t.Error("Error occurred while copying.")
+	}
+
+	logSrcDst(t, src, dst)
+
+	assertEqual(t, true, src.CreatedTime == dst.CreatedTime)
+
+	assertEqual(t, true, IsZero(dst.Level1Struct))
+	assertEqual(t, true, IsZero(dst.SampleSubInfo))
+
+	assertEqual(t, true, dst.Level1StructPtr == nil)
+	assertEqual(t, true, dst.Level1StructNoTraverse == nil)
+}
+
+type SampleStruct struct {
+	Integer             int
+	IntegerPtr          *int
+	String              string
+	StringPtr           *string
+	Boolean             bool
+	BooleanPtr          *bool
+	BooleanOmit         bool `model:"-"`
+	SliceString         []string
+	SliceStringOmit     []string `model:"-"`
+	SliceStringPtr      *[]string
+	SliceStringPtrOmit  *[]string `model:"-"`
+	SliceStringPtrStr   []*string
+	Float32             float32
+	Float32Ptr          *float32
+	Float32Omit         float32  `model:"-"`
+	Float32PtrOmit      *float32 `model:"-"`
+	Float64             float64
+	Float64Ptr          *float64
+	Float64Omit         float64  `model:"-"`
+	Float64PtrOmit      *float64 `model:"-"`
+	SliceStruct         []SampleSubInfo
+	SliceStructPtr      []*SampleSubInfo
+	SliceInt            []int
+	SliceIntPtr         []*int
+	Time                time.Time
+	TimePtr             *time.Time
+	Struct              SampleSubInfo
+	StructPtr           *SampleSubInfo
+	StructNoTraverse    SampleSubInfo  `model:",notraverse"`
+	StructPtrNoTraverse *SampleSubInfo `model:",notraverse"`
+	StructDeep          SampleSubInfoDeep
+	StructDeepPtr       *SampleSubInfoDeep
+	SampleSubInfo
+}
+
+type SampleSubInfo struct {
+	Name string
+	Year int
+}
+
+type SampleSubInfoDeep struct {
+	Name                string
+	NamePtr             *string `model:"-"`
+	Year                int     `model:"-"`
+	YearPtr             *int
+	Struct              SampleSubInfo
+	StructPtr           *SampleSubInfo
+	StructNoTraverse    SampleSubInfo  `model:",notraverse"`
+	StructPtrNoTraverse *SampleSubInfo `model:",notraverse"`
+	SampleSubInfo
 }
 
 func TestCopyZeroInput(t *testing.T) {
@@ -332,7 +574,79 @@ func TestCopyStructElementKindDiff(t *testing.T) {
 
 	errs := Copy(&Destination{}, Source{Name: "This struct element kind is different"}, false)
 
-	assertEqual(t, "Field: 'Name', src & dst kind doesn't match", errs[0].Error())
+	assertEqual(t, "Field: 'Name', src [string] & dst [int] kind doesn't match", errs[0].Error())
+}
+
+func TestCopyStructElementTypeDiffOnLevel1(t *testing.T) {
+	type SampleLevelSrc struct {
+		Name string
+	}
+
+	type SampleLevelDst struct {
+		Name int
+	}
+
+	type Source struct {
+		Name   string
+		Level1 SampleLevelSrc
+	}
+
+	type Destination struct {
+		Name   int
+		Level1 SampleLevelDst
+	}
+
+	src := Source{
+		Name: "This struct element kind is different",
+		Level1: SampleLevelSrc{
+			Name: "Level1: This struct element kind is different",
+		},
+	}
+
+	dst := Destination{}
+
+	errs := Copy(&dst, src, false)
+
+	logSrcDst(t, src, dst)
+
+	assertEqual(t, "Field: 'Name', src [string] & dst [int] kind doesn't match", errs[0].Error())
+	assertEqual(t,
+		"Field: 'Level1', src [model.SampleLevelSrc] & dst [model.SampleLevelDst] type doesn't match",
+		errs[1].Error(),
+	)
+}
+
+func TestCopyStructTypeDiffOnLevel1Interface(t *testing.T) {
+	type SampleLevelSrc struct {
+		Name string
+	}
+
+	type Source struct {
+		Name   string
+		Level1 SampleLevelSrc
+	}
+
+	type Destination struct {
+		Name   int
+		Level1 interface{}
+	}
+
+	src := Source{
+		Name: "This struct element kind is different",
+		Level1: SampleLevelSrc{
+			Name: "Level1: This struct element kind is different",
+		},
+	}
+
+	dst := Destination{}
+
+	errs := Copy(&dst, src, false)
+
+	logSrcDst(t, src, dst)
+
+	assertEqual(t, "Field: 'Name', src [string] & dst [int] kind doesn't match", errs[0].Error())
+	assertEqual(t, 0, dst.Name)
+	assertEqual(t, src.Level1.Name, dst.Level1.(SampleLevelSrc).Name)
 }
 
 func TestCopyStructElementIsNotValidInDst(t *testing.T) {
@@ -413,22 +727,22 @@ func TestIsZero(t *testing.T) {
 		t.Error("SampleStruct Ptr - supposed to be zero")
 	}
 
-	if !IsZero(&SampleStruct{Struct: SubInfo{}, StructPtr: &SubInfo{}}) {
+	if !IsZero(&SampleStruct{Struct: SampleSubInfo{}, StructPtr: &SampleSubInfo{}}) {
 		t.Error("SampleStruct with sub struct 1 - supposed to be zero")
 	}
 
-	if !IsZero(&SampleStruct{Struct: SubInfo{Name: "go-model"}, StructPtr: &SubInfo{}}) {
+	if !IsZero(&SampleStruct{Struct: SampleSubInfo{Name: "go-model"}, StructPtr: &SampleSubInfo{}}) {
 		t.Log("SampleStruct with sub struct 2 - supposed to be zero")
 	} else {
 		t.Error("SampleStruct with sub struct 2 - supposed to be zero")
 	}
 
 	deepStruct := SampleStruct{
-		StructDeepPtr: &SubInfoDeep{
-			StructPtr: &SubInfo{
+		StructDeepPtr: &SampleSubInfoDeep{
+			StructPtr: &SampleSubInfo{
 				Name: "I'm here",
 			},
-			StructOmit: SubInfo{
+			StructNoTraverse: SampleSubInfo{
 				Year: 2005,
 			},
 		},
@@ -443,9 +757,20 @@ func TestNonZeroCheck(t *testing.T) {
 		t.Error("SampleStruct notraverse - supposed to be zero")
 	}
 
-	if IsZero(SampleStruct{SubInfo: SubInfo{Year: 2010}}) {
+	if IsZero(SampleStruct{SampleSubInfo: SampleSubInfo{Year: 2010}}) {
 		t.Error("SampleStruct embeded struct - supposed to be non-zero")
 	}
+}
+
+func TestIsStructMethod(t *testing.T) {
+	src := map[string]interface{}{
+		"struct": &SampleStruct{Time: time.Now()},
+	}
+
+	mv := valueOf(src)
+	keys := mv.MapKeys()
+
+	assertEqual(t, true, isStruct(mv.MapIndex(keys[0])))
 }
 
 func assertError(t *testing.T, err error) {
@@ -501,7 +826,7 @@ func compare(e, g interface{}) (r bool) {
 
 func logSrcDst(t *testing.T, src, dst interface{}) {
 	logIt(t, "Source", src)
-	fmt.Println()
+	t.Log()
 	logIt(t, "Destination", dst)
 }
 

@@ -7,6 +7,7 @@ package model
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"reflect"
 	"strings"
@@ -14,20 +15,43 @@ import (
 )
 
 const (
-	TagName    = "model"
-	OmitField  = "-"
+	// go-model Tag name for attribute options.
+	//
+	// For Example:
+	// ------------
+	// BookCount	int64		`model:"bookCount"`
+	// ArchiveInfo	StoreInfo	`model:"archiveInfo,notraverse"`
+	TagName = "model"
+
+	// OmitField value is used omit attribute(s) from go-model processing
+	OmitField = "-"
+
+	// NoTraverse means go-model library will not traverse inside those struct object.
+	// However, attribute value will be evaluated/processed by library.
 	NoTraverse = "notraverse"
 )
 
 var (
-	Version            = "0.1-beta"
+	// go-model version #
+	Version = "0.1-beta"
+
+	// NoTraverseTypeList keeps track of no-traverse type list at library level
 	NoTraverseTypeList map[reflect.Type]bool
 )
 
+// AddNoTraverseType method adds the Go Lang type into global `NoTraverseTypeList`.
+// Those type(s) from list is considered as "No Traverse" type by go-model library
+// for model mapping process. See also `RemoveNoTraverseType()` method.
+// 		model.AddNoTraverseType(time.Time{}, &time.Time{}, os.File{}, &os.File{})
+//
+// Default NoTraverseTypeList: time.Time{}, &time.Time{}, os.File{}, &os.File{},
+// http.Request{}, &http.Request{}, http.Response{}, &http.Response{}
+//
 func AddNoTraverseType(i ...interface{}) {
 	for _, v := range i {
 		t := reflect.TypeOf(v)
 		if _, ok := NoTraverseTypeList[t]; ok {
+
 			// already registered for no traverse, move on
 			continue
 		}
@@ -37,6 +61,10 @@ func AddNoTraverseType(i ...interface{}) {
 	}
 }
 
+// RemoveNoTraverseType method is used to remove Go Lang type from the `NoTraverseTypeList`.
+// See also `AddNoTraverseType()` method.
+// 		model.RemoveNoTraverseType(http.Request{}, &http.Request{})
+//
 func RemoveNoTraverseType(i ...interface{}) {
 	for _, v := range i {
 		t := reflect.TypeOf(v)
@@ -54,7 +82,7 @@ func IsZero(s interface{}) bool {
 	}
 
 	sv := indirect(valueOf(s))
-	fields := Fields(sv)
+	fields := getFields(sv)
 
 	for _, f := range fields {
 		fv := sv.FieldByName(f.Name)
@@ -63,58 +91,28 @@ func IsZero(s interface{}) bool {
 		if isStruct(fv) {
 
 			if isNoTraverseType(fv) || isNoTraverse(f.Tag.Get(TagName)) {
+
 				// not traversing inside, but evaluating a value
-				if !IsFieldZero(fv) {
+				if !isFieldZero(fv) {
 					return false
 				}
 
-				continue // move on to next attribute
+				continue
 			}
 
 			if !IsZero(fv.Interface()) {
 				return false
 			}
 
-			continue // move on to next attribute
+			continue
 		}
 
-		if !IsFieldZero(fv) {
+		if !isFieldZero(fv) {
 			return false
 		}
 	}
 
 	return true
-}
-
-func IsFieldZero(f reflect.Value) bool {
-	// zero value of the given field
-	// For example: reflect.Zero(reflect.TypeOf(42)) returns a Value with Kind Int and value 0
-	zero := reflect.Zero(f.Type()).Interface()
-
-	return reflect.DeepEqual(f.Interface(), zero)
-}
-
-func Fields(v reflect.Value) []reflect.StructField {
-	v = indirect(v)
-	t := v.Type()
-
-	var fs []reflect.StructField
-	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
-
-		// Only exported fields of a struct can be accessed,
-		// non-exported fields will be ignored
-		if f.PkgPath == "" {
-			// `model="-"` attributes will be omited
-			if tag := f.Tag.Get(TagName); tag == OmitField {
-				continue
-			}
-
-			fs = append(fs, f)
-		}
-	}
-
-	return fs
 }
 
 func Copy(dst, src interface{}, zero bool) []error {
@@ -143,29 +141,97 @@ func Copy(dst, src interface{}, zero bool) []error {
 	return nil
 }
 
+//
+// go-model init
+//
+
+func init() {
+	NoTraverseTypeList = map[reflect.Type]bool{}
+
+	// Default NoTraverseTypeList
+	// --------------------------
+	// Auto No Traverse struct list for not traversing Deep Level
+	// However, attribute value will be evaluated by go-model library
+	AddNoTraverseType(
+		time.Time{},
+		&time.Time{},
+		os.File{},
+		&os.File{},
+		http.Request{},
+		&http.Request{},
+		http.Response{},
+		&http.Response{},
+
+		// it's better to add it to the list for appropriate type(s)
+	)
+}
+
+//
+// Non-exported methods of model library
+//
+
+func getFields(v reflect.Value) []reflect.StructField {
+	v = indirect(v)
+	t := v.Type()
+
+	var fs []reflect.StructField
+
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+
+		// Only exported fields of a struct can be accessed,
+		// non-exported fields will be ignored
+		if f.PkgPath == "" {
+
+			// `model="-"` attributes will be omitted
+			if tag := f.Tag.Get(TagName); tag == OmitField {
+				continue
+			}
+
+			fs = append(fs, f)
+		}
+	}
+
+	return fs
+}
+
+func isFieldZero(f reflect.Value) bool {
+	// zero value of the given field
+	// For example: reflect.Zero(reflect.TypeOf(42)) returns a Value with Kind Int and value 0
+	zero := reflect.Zero(f.Type()).Interface()
+
+	return reflect.DeepEqual(f.Interface(), zero)
+}
+
+func isNoTraverseType(v reflect.Value) bool {
+	t := dTypeOf(v)
+
+	if _, ok := NoTraverseTypeList[t]; ok {
+		return true
+	}
+
+	return false
+}
+
 func doCopy(dv, sv reflect.Value, zero bool) []error {
 	dv = indirect(dv)
 	sv = indirect(sv)
-	fields := Fields(sv)
-
-	fmt.Println("No of src fields ready for use:", len(fields))
-	fmt.Println("Copy only non-zero:", zero)
+	fields := getFields(sv)
 
 	var errs []error
 
 	for _, f := range fields {
 		sfv := sv.FieldByName(f.Name)
 
-		fmt.Println("--------------------------")
-		fmt.Println("Processing field:", f.Name)
-		fmt.Println("Interface: ", sfv.Interface(), "Type:", sfv.Type(), "isStruct:", isStruct(sfv))
+		// compute no-traverse scope
+		noTraverse := (isNoTraverseType(sfv) || isNoTraverse(f.Tag.Get(TagName)))
 
 		// check whether field is zero or not
 		var isVal bool
-		if isStruct(sfv) {
-			isVal = !IsZero(sfv)
+		if isStruct(sfv) && !noTraverse {
+			isVal = !IsZero(sfv.Interface())
 		} else {
-			isVal = !IsFieldZero(sfv)
+			isVal = !isFieldZero(sfv)
 		}
 
 		if isVal || zero {
@@ -178,16 +244,29 @@ func doCopy(dv, sv reflect.Value, zero bool) []error {
 			}
 
 			// check kind of src and dst, if doesn't match move on
-			if sfv.Kind() != dfv.Kind() {
-				errs = append(errs, fmt.Errorf("Field: '%v', src & dst kind doesn't match", f.Name))
+			if (sfv.Kind() != dfv.Kind()) && !isInterface(dfv) {
+				errs = append(errs, fmt.Errorf("Field: '%v', src [%v] & dst [%v] kind doesn't match",
+					f.Name,
+					sfv.Kind(),
+					dfv.Kind(),
+				))
 				continue
 			}
 
-			fmt.Println("Pre-conditions is met")
+			// check type of src and dst, if doesn't match move on
+			sfvt := dTypeOf(sfv)
+			dfvt := dTypeOf(dfv)
+			if (sfvt != dfvt) && !isInterface(dfv) {
+				errs = append(errs, fmt.Errorf("Field: '%v', src [%v] & dst [%v] type doesn't match",
+					f.Name,
+					sfvt,
+					dfvt,
+				))
+				continue
+			}
 
 			// check dst field settable or not
 			if dfv.CanSet() {
-				fmt.Println("Can set value:", f.Name)
 
 				// if src is zero make dst also zero
 				// since zero=true
@@ -199,21 +278,18 @@ func doCopy(dv, sv reflect.Value, zero bool) []error {
 
 				// handle embeded/nested struct
 				if isStruct(sfv) {
-					fmt.Println("This is struct kind:", dTypeOf(sfv))
-					if isNoTraverseType(sfv) || isNoTraverse(f.Tag.Get(TagName)) {
-						fmt.Println("We are not going to traverse")
+
+					if noTraverse {
 						// This is struct kind, but we are not going to traverse
-						// since its in NoTraverseTypeList
-						// however we will take care of attribute value
+						// since its in NoTraverseTypeList or notraverse tag value present
+						// however take care of attribute value
 						dfv.Set(val(sfv, zero, true))
 					} else {
-						fmt.Println("We are going to traverse inside")
-
 						ndv := reflect.New(indirect(sfv).Type())
 						innerErrs := doCopy(ndv, sfv, zero)
-						if innerErrs != nil {
-							errs = append(errs, innerErrs...)
-						}
+
+						// add errors to main stream
+						errs = append(errs, innerErrs...)
 
 						// handle based on ptr/non-ptr value
 						if isPtr(sfv) {
@@ -223,51 +299,15 @@ func doCopy(dv, sv reflect.Value, zero bool) []error {
 						}
 					}
 
-					continue // move on to next attribute
+					continue
 				}
 
 				dfv.Set(val(sfv, zero, false))
-			} else {
-				errs = append(errs, fmt.Errorf("Field: '%v', can't set value in the dst", f.Name))
 			}
 		}
 	}
 
 	return errs
-}
-
-//
-// go-model init
-//
-
-func init() {
-	NoTraverseTypeList = map[reflect.Type]bool{}
-
-	// Default NoTraverseTypeList
-	// --------------------------
-	// Auto No Traverse struct list for not traversing DeepLevel
-	// However, attribute value will be evaluated by go-model
-	AddNoTraverseType(
-		time.Time{},
-		&time.Time{},
-		os.File{},
-		&os.File{},
-		// it's better to add it to the list for appropriate type(s)
-	)
-}
-
-//
-// Non-exported methods of model library
-//
-
-func isNoTraverseType(v reflect.Value) bool {
-	t := dTypeOf(v)
-
-	if _, ok := NoTraverseTypeList[t]; ok {
-		return true
-	}
-
-	return false
 }
 
 func val(f reflect.Value, zero, notraverse bool) reflect.Value {
@@ -287,49 +327,49 @@ func val(f reflect.Value, zero, notraverse bool) reflect.Value {
 		f = f.Elem()
 	}
 
-	fmt.Println("==> Pointer:", ptr)
-	fmt.Println("==> Type:", f.Type(), "Value:", f.Interface())
-
+	// reflect.Slice3 is not yet supported by this library
 	switch f.Kind() {
 	case reflect.Struct:
-		fmt.Println("VAL==>VAL: We got the struct here")
+
 		if notraverse {
-			fmt.Println("==> Ended up notraverse:", notraverse)
 			nf = f
 		} else {
 			nf = reflect.New(f.Type())
-			// TODO propagate errors
+
+			// currently, struct within map/slice errors doesn't get propagated
 			doCopy(nf, f, zero)
-			fmt.Printf("\n==> f type: %v, value: %#v\n", f.Type(), f)
 
 			// unwrap
 			nf = nf.Elem()
-			fmt.Println("==> Type nf:", nf.Type())
 		}
 	case reflect.Map:
-		fmt.Println("Map value count:", f.Len())
 		if f.Len() > 0 {
 			nf = reflect.MakeMap(f.Type())
 
 			for _, key := range f.MapKeys() {
 				ov := f.MapIndex(key)
-				fmt.Println("||===> Map Type:", ov.Type(), isStruct(ov), dTypeOf(ov))
 				cv := reflect.New(ov.Type()).Elem()
-				traverse := isNoTraverseType(ov) // TODO No traverse tag needs to handled
+
+				// currently, `model:,notraverse` tag is not honoured
+				// for struct with map
+				traverse := isNoTraverseType(ov)
+
 				cv.Set(val(ov, zero, traverse))
 				nf.SetMapIndex(key, cv)
 			}
 		}
 	case reflect.Slice:
-		fmt.Println("Slice value count:", f.Len())
 		if f.Len() > 0 {
 			nf = reflect.MakeSlice(f.Type(), f.Len(), f.Cap())
 
 			for i := 0; i < f.Len(); i++ {
 				ov := f.Index(i)
-				fmt.Println("||===> Slice Type:", ov.Type(), isStruct(ov), dTypeOf(ov))
 				cv := reflect.New(ov.Type()).Elem()
-				traverse := isNoTraverseType(ov) // TODO No traverse tag needs to handled
+
+				// currently, `model:,notraverse` tag is not honoured
+				// for struct with slice
+				traverse := isNoTraverseType(ov)
+
 				cv.Set(val(ov, zero, traverse))
 				nf.Index(i).Set(cv)
 			}
@@ -340,12 +380,9 @@ func val(f reflect.Value, zero, notraverse bool) reflect.Value {
 
 	if ptr {
 		// wrap
-		fmt.Println("==> PTR ==> Type:", nf.Type(), "f:", f.Type())
-
 		o := reflect.New(nf.Type())
 		o.Elem().Set(nf)
 
-		fmt.Println("==> o type:", o.Type())
 		return o
 	}
 
@@ -353,6 +390,7 @@ func val(f reflect.Value, zero, notraverse bool) reflect.Value {
 }
 
 func zeroVal(f reflect.Value) reflect.Value {
+
 	// get zero value for type
 	ftz := reflect.Zero(f.Type())
 
@@ -370,8 +408,14 @@ func isNoTraverse(tag string) bool {
 
 func dTypeOf(v reflect.Value) reflect.Type {
 	if isInterface(v) {
-		v = valueOf(v.Interface())
+
+		// check zero or not
+		if !isFieldZero(v) {
+			v = valueOf(v.Interface())
+		}
+
 	}
+
 	return v.Type()
 }
 
@@ -392,7 +436,14 @@ func isStruct(v reflect.Value) bool {
 		v = valueOf(v.Interface())
 	}
 
-	return indirect(v).Kind() == reflect.Struct
+	v = indirect(v)
+
+	// struct is not yet initialized
+	if v.Kind() == reflect.Invalid {
+		return false
+	}
+
+	return v.Kind() == reflect.Struct
 }
 
 func isInterface(v reflect.Value) bool {
