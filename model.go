@@ -2,6 +2,10 @@
 // resty source code and usage is governed by a MIT style
 // license that can be found in the LICENSE file.
 
+/*
+Package model provides robust & easy to use model mapper and model utility methods for Go.
+These typical methods increases productivity and makes Go developement more fun :)
+*/
 package model
 
 import (
@@ -15,8 +19,7 @@ import (
 )
 
 const (
-	// TagName is used to mention field/attribute options for
-	// go-model library.
+	// TagName is used to mention field options for go-model library.
 	//
 	// For Example:
 	// ------------
@@ -24,8 +27,11 @@ const (
 	// ArchiveInfo	StoreInfo	`model:"archiveInfo,notraverse"`
 	TagName = "model"
 
-	// OmitField value is used omit attribute(s) from go-model processing
+	// OmitField value is used omit field(s) from go-model processing
 	OmitField = "-"
+
+	// OmitEmpty option is used skip field(s) from output if zero value
+	OmitEmpty = "omitempty"
 
 	// NoTraverse means go-model library will not traverse inside those struct object.
 	// However, attribute value will be evaluated/processed by library.
@@ -38,6 +44,8 @@ var (
 
 	// NoTraverseTypeList keeps track of no-traverse type list at library level
 	NoTraverseTypeList map[reflect.Type]bool
+
+	typeOfBytes = reflect.TypeOf([]byte(nil))
 )
 
 // AddNoTraverseType method adds the Go Lang type into global `NoTraverseTypeList`.
@@ -144,6 +152,11 @@ func IsZero(s interface{}) bool {
 // The "Name", "Type" and "Kind" is should match to qualify a copy. One exception though;
 // if the destination Field/Attribute type is "interface{}" then "Type" and "Kind" doesn't matter,
 // source value gets copied to that destination Field/Attribute.
+//
+// Copy method handles:
+// 		// List out what copy method can do
+//
+// Sample Snippet
 // 		src := SampleStruct{ /* source values goes here */ }
 // 		dst := SampleStruct{}
 //
@@ -199,6 +212,21 @@ func Copy(dst, src interface{}, copyZero bool) []error {
 	}
 
 	return nil
+}
+
+func Map(s interface{}) (map[string]interface{}, error) {
+	if s == nil {
+		return nil, errors.New("Invalid input <nil>")
+	}
+
+	sv := indirect(valueOf(s))
+
+	if !isStruct(sv) {
+		return nil, errors.New("Input is not a struct")
+	}
+
+	// processing map value(s)
+	return doMap(sv), nil
 }
 
 //
@@ -333,16 +361,16 @@ func doCopy(dv, sv reflect.Value, zero bool) []error {
 				if !isVal {
 					dfv.Set(zeroVal(dfv))
 
-					continue // move on to next attribute
+					continue
 				}
 
-				// handle embeded/nested struct
+				// handle embeded or nested struct
 				if isStruct(sfv) {
 
 					if noTraverse {
-						// This is struct kind, but we are not going to traverse
-						// since its in NoTraverseTypeList or notraverse tag value present
-						// however take care of attribute value
+						// This is struct kind and its present in NoTraverseTypeList,
+						// so go-model is not gonna traverse inside.
+						// however will take care of field value
 						dfv.Set(val(sfv, zero, true))
 					} else {
 						ndv := reflect.New(indirect(sfv).Type())
@@ -368,6 +396,92 @@ func doCopy(dv, sv reflect.Value, zero bool) []error {
 	}
 
 	return errs
+}
+
+func doMap(sv reflect.Value) map[string]interface{} {
+	sv = indirect(sv)
+	fields := getFields(sv)
+	m := map[string]interface{}{}
+
+	for _, f := range fields {
+		fv := sv.FieldByName(f.Name)
+
+		fmt.Println("===========================")
+
+		tag := newTag(f.Tag.Get(TagName))
+		fmt.Printf("\nTag: %#v\n", tag)
+
+		// map key name
+		keyName := f.Name
+		if !isStringEmpty(tag.Name) {
+			keyName = tag.Name
+		}
+
+		fmt.Println("Field Name:", f.Name)
+		fmt.Println("Map Key Name:", keyName)
+
+		// compute no-traverse scope
+		noTraverse := (isNoTraverseType(fv) || tag.isNoTraverse())
+
+		// check whether field is zero or not
+		var isVal bool
+		if isStruct(fv) && !noTraverse {
+			isVal = !IsZero(fv.Interface())
+		} else {
+			isVal = !isFieldZero(fv)
+		}
+
+		// field value is not zero
+		if isVal {
+
+			// handle embeded or nested struct
+			if isStruct(fv) {
+
+				if noTraverse {
+					// This is struct kind and its present in NoTraverseTypeList,
+					// so go-model is not gonna traverse inside.
+					// however will take care of field value
+					kv := mapVal(fv, true)
+					fmt.Println("Src:", fv, fv.Interface())
+					fmt.Println("Dst: Struct -> No traverse -> Key Value:", kv, kv.Interface())
+
+					m[keyName] = kv.Interface()
+				} else {
+
+					// embeded struct values gets mapped at
+					// Field level instead of object
+					fmv := doMap(fv)
+					if f.Anonymous {
+						for k, v := range fmv {
+							m[k] = v
+						}
+					} else {
+						m[keyName] = fmv
+					}
+				}
+
+				continue
+			}
+
+			kv := mapVal(fv, false)
+			fmt.Println("Src:", fv, fv.Interface())
+			fmt.Println("Dst: Default Path -> Key Value:", kv, kv.Interface())
+
+			m[keyName] = kv.Interface()
+		} else {
+
+			// field value is zero and 'omitempty' option present
+			// then not including into Map
+			if !tag.isOmitEmpty() {
+				kv := zeroVal(fv)
+				fmt.Println("Src:", fv, fv.Interface())
+				fmt.Println("Dst: Zero Path -> Key Value:", kv)
+				m[keyName] = kv.Interface()
+			}
+		}
+	}
+
+	return m
 }
 
 func val(f reflect.Value, zero, notraverse bool) reflect.Value {
@@ -432,6 +546,82 @@ func val(f reflect.Value, zero, notraverse bool) reflect.Value {
 
 				cv.Set(val(ov, zero, traverse))
 				nf.Index(i).Set(cv)
+			}
+		}
+	default:
+		nf = f
+	}
+
+	if ptr {
+		// wrap
+		o := reflect.New(nf.Type())
+		o.Elem().Set(nf)
+
+		return o
+	}
+
+	return nf
+}
+
+func mapVal(f reflect.Value, notraverse bool) reflect.Value {
+	var (
+		ptr bool
+		nf  reflect.Value
+	)
+
+	// take care interface{} and its actual value
+	if isInterface(f) {
+		f = valueOf(f.Interface())
+	}
+
+	// ptr, let's take a note
+	if isPtr(f) {
+		ptr = true
+		f = f.Elem()
+	}
+
+	// reflect.Slice3 is not yet supported by this library
+	switch f.Kind() {
+	case reflect.Struct:
+		if notraverse {
+			nf = f
+		} else {
+			nf = valueOf(doMap(f))
+		}
+	case reflect.Map:
+		nmv := map[string]interface{}{}
+
+		for _, key := range f.MapKeys() {
+			skey := fmt.Sprintf("%v", key.Interface())
+			mv := f.MapIndex(key)
+
+			var nv reflect.Value
+			if isStruct(mv) {
+				nv = mapVal(mv, isNoTraverseType(mv))
+			} else {
+				nv = mapVal(mv, false)
+			}
+
+			nmv[skey] = nv.Interface()
+		}
+
+		nf = valueOf(nmv)
+	case reflect.Slice:
+		if f.Type() == typeOfBytes {
+			nf = f
+		} else {
+			nf = reflect.MakeSlice(f.Type(), f.Len(), f.Cap())
+			for i := 0; i < f.Len(); i++ {
+				sv := f.Index(i)
+				dv := reflect.New(sv.Type()).Elem()
+
+				if isStruct(sv) {
+					// TODO
+				} else {
+					dv.Set(mapVal(sv, false))
+				}
+
+				nf.Index(i).Set(dv)
 			}
 		}
 	default:
