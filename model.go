@@ -91,7 +91,7 @@ func RemoveNoTraverseType(i ...interface{}) {
 // A "model" tag with the value of "-" is ignored by library for processing.
 // 		For Example:
 //
-// 		// Field/Attribute is ignored by go-model processing
+// 		// Field is ignored by go-model processing
 // 		BookCount	int	`model:"-"`
 // 		BookCode	string	`model:"-"`
 //
@@ -100,7 +100,7 @@ func RemoveNoTraverseType(i ...interface{}) {
 // its zero or not.
 // 		For Example:
 //
-// 		// Field/Attribute is not traversed but value is evaluated/processed
+// 		// Field is not traversed but value is evaluated/processed
 // 		ArchiveInfo	BookArchive	`model:"archiveInfo,notraverse"`
 // 		Region		BookLocale	`model:",notraverse"`
 //
@@ -150,8 +150,8 @@ func IsZero(s interface{}) bool {
 
 // Copy method copies all the exported values from source struct into destination struct.
 // The "Name", "Type" and "Kind" is should match to qualify a copy. One exception though;
-// if the destination Field/Attribute type is "interface{}" then "Type" and "Kind" doesn't matter,
-// source value gets copied to that destination Field/Attribute.
+// if the destination Field type is "interface{}" then "Type" and "Kind" doesn't matter,
+// source value gets copied to that destination Field.
 //
 // Copy method handles:
 // 		// List out what copy method can do
@@ -160,9 +160,7 @@ func IsZero(s interface{}) bool {
 // 		src := SampleStruct{ /* source values goes here */ }
 // 		dst := SampleStruct{}
 //
-// 		// thrid param 'copyZero' tells whether to copy zero or not into destination struct.
-// 		// its very handy for partial put or patch update request scenarios, etc.
-// 		errs := model.Copy(&dst, src, true)
+// 		errs := model.Copy(&dst, src)
 // 		if errs != nil {
 // 			fmt.Println("Errors:", errs)
 // 		}
@@ -175,20 +173,29 @@ func IsZero(s interface{}) bool {
 // A "model" tag with the value of "-" is ignored by library for processing.
 // 		For Example:
 //
-// 		// Field/Attribute is ignored by go-model processing
+// 		// Field is ignored by go-model processing
 // 		BookCount	int	`model:"-"`
 // 		BookCode	string	`model:"-"`
+//
+// A "model" tag value with the option of "omitempty"; library will not copy those values
+// into destination struct object. It may be very handy for partial put or patch update
+// request scenarios; you don't want to copy empty/zero value into destination object
+// 		For Example:
+//
+// 		// Field is not copy into 'dst' if it is empty/zero value
+// 		ArchiveInfo	BookArchive	`model:"archiveInfo,omitempty"`
+// 		Region		BookLocale	`model:",omitempty,notraverse"`
 //
 // A "model" tag value with the option of "notraverse"; library will not traverse
 // inside those struct object. However field value will be evaluated whether
 // its zero or not.
 // 		For Example:
 //
-// 		// Field/Attribute is not traversed but value is evaluated/processed
+// 		// Field is not traversed but value is evaluated/processed
 // 		ArchiveInfo	BookArchive	`model:"archiveInfo,notraverse"`
 // 		Region		BookLocale	`model:",notraverse"`
 //
-func Copy(dst, src interface{}, copyZero bool) []error {
+func Copy(dst, src interface{}) []error {
 	var errs []error
 
 	sv := valueOf(src)
@@ -206,7 +213,7 @@ func Copy(dst, src interface{}, copyZero bool) []error {
 	}
 
 	// processing copy value(s)
-	errs = doCopy(dv, sv, copyZero)
+	errs = doCopy(dv, sv)
 	if errs != nil {
 		return errs
 	}
@@ -301,7 +308,7 @@ func isNoTraverseType(v reflect.Value) bool {
 	return false
 }
 
-func doCopy(dv, sv reflect.Value, zero bool) []error {
+func doCopy(dv, sv reflect.Value) []error {
 	dv = indirect(dv)
 	sv = indirect(sv)
 	fields := getFields(sv)
@@ -310,9 +317,10 @@ func doCopy(dv, sv reflect.Value, zero bool) []error {
 
 	for _, f := range fields {
 		sfv := sv.FieldByName(f.Name)
+		tag := newTag(f.Tag.Get(TagName))
 
 		// compute no-traverse scope
-		noTraverse := (isNoTraverseType(sfv) || isNoTraverse(f.Tag.Get(TagName)))
+		noTraverse := (isNoTraverseType(sfv) || tag.isNoTraverse())
 
 		// check whether field is zero or not
 		var isVal bool
@@ -322,8 +330,9 @@ func doCopy(dv, sv reflect.Value, zero bool) []error {
 			isVal = !isFieldZero(sfv)
 		}
 
-		if isVal || zero {
-			dfv := dv.FieldByName(f.Name)
+		dfv := dv.FieldByName(f.Name)
+
+		if isVal {
 
 			// check dst field is exists, if not valid move on
 			if !dfv.IsValid() {
@@ -356,14 +365,6 @@ func doCopy(dv, sv reflect.Value, zero bool) []error {
 			// check dst field settable or not
 			if dfv.CanSet() {
 
-				// if src is zero make dst also zero
-				// since zero=true
-				if !isVal {
-					dfv.Set(zeroVal(dfv))
-
-					continue
-				}
-
 				// handle embeded or nested struct
 				if isStruct(sfv) {
 
@@ -371,10 +372,10 @@ func doCopy(dv, sv reflect.Value, zero bool) []error {
 						// This is struct kind and its present in NoTraverseTypeList,
 						// so go-model is not gonna traverse inside.
 						// however will take care of field value
-						dfv.Set(val(sfv, zero, true))
+						dfv.Set(val(sfv, true))
 					} else {
 						ndv := reflect.New(indirect(sfv).Type())
-						innerErrs := doCopy(ndv, sfv, zero)
+						innerErrs := doCopy(ndv, sfv)
 
 						// add errors to main stream
 						errs = append(errs, innerErrs...)
@@ -390,7 +391,14 @@ func doCopy(dv, sv reflect.Value, zero bool) []error {
 					continue
 				}
 
-				dfv.Set(val(sfv, zero, false))
+				dfv.Set(val(sfv, false))
+			}
+		} else {
+
+			// field value is zero and 'omitempty' option present
+			// then not copying into destination struct
+			if !tag.isOmitEmpty() {
+				dfv.Set(zeroVal(dfv))
 			}
 		}
 	}
@@ -405,20 +413,13 @@ func doMap(sv reflect.Value) map[string]interface{} {
 
 	for _, f := range fields {
 		fv := sv.FieldByName(f.Name)
-
-		fmt.Println("===========================")
-
 		tag := newTag(f.Tag.Get(TagName))
-		fmt.Printf("\nTag: %#v\n", tag)
 
 		// map key name
 		keyName := f.Name
 		if !isStringEmpty(tag.Name) {
 			keyName = tag.Name
 		}
-
-		fmt.Println("Field Name:", f.Name)
-		fmt.Println("Map Key Name:", keyName)
 
 		// compute no-traverse scope
 		noTraverse := (isNoTraverseType(fv) || tag.isNoTraverse())
@@ -441,11 +442,7 @@ func doMap(sv reflect.Value) map[string]interface{} {
 					// This is struct kind and its present in NoTraverseTypeList,
 					// so go-model is not gonna traverse inside.
 					// however will take care of field value
-					kv := mapVal(fv, true)
-					fmt.Println("Src:", fv, fv.Interface())
-					fmt.Println("Dst: Struct -> No traverse -> Key Value:", kv, kv.Interface())
-
-					m[keyName] = kv.Interface()
+					m[keyName] = mapVal(fv, true).Interface()
 				} else {
 
 					// embeded struct values gets mapped at
@@ -463,20 +460,13 @@ func doMap(sv reflect.Value) map[string]interface{} {
 				continue
 			}
 
-			kv := mapVal(fv, false)
-			fmt.Println("Src:", fv, fv.Interface())
-			fmt.Println("Dst: Default Path -> Key Value:", kv, kv.Interface())
-
-			m[keyName] = kv.Interface()
+			m[keyName] = mapVal(fv, false).Interface()
 		} else {
 
 			// field value is zero and 'omitempty' option present
 			// then not including into Map
 			if !tag.isOmitEmpty() {
-				kv := zeroVal(fv)
-				fmt.Println("Src:", fv, fv.Interface())
-				fmt.Println("Dst: Zero Path -> Key Value:", kv)
-				m[keyName] = kv.Interface()
+				m[keyName] = zeroVal(fv).Interface()
 			}
 		}
 	}
@@ -484,7 +474,7 @@ func doMap(sv reflect.Value) map[string]interface{} {
 	return m
 }
 
-func val(f reflect.Value, zero, notraverse bool) reflect.Value {
+func val(f reflect.Value, notraverse bool) reflect.Value {
 	var (
 		ptr bool
 		nf  reflect.Value
@@ -511,40 +501,36 @@ func val(f reflect.Value, zero, notraverse bool) reflect.Value {
 			nf = reflect.New(f.Type())
 
 			// currently, struct within map/slice errors doesn't get propagated
-			doCopy(nf, f, zero)
+			doCopy(nf, f)
 
 			// unwrap
 			nf = nf.Elem()
 		}
 	case reflect.Map:
-		if f.Len() > 0 {
-			nf = reflect.MakeMap(f.Type())
+		nf = reflect.MakeMap(f.Type())
 
-			for _, key := range f.MapKeys() {
-				ov := f.MapIndex(key)
-				cv := reflect.New(ov.Type()).Elem()
+		for _, key := range f.MapKeys() {
+			ov := f.MapIndex(key)
 
-				// currently, `model:,notraverse` tag is not honoured
-				// for struct with map
-				traverse := isNoTraverseType(ov)
+			cv := reflect.New(ov.Type()).Elem()
+			traverse := isNoTraverseType(ov)
+			cv.Set(val(ov, traverse))
 
-				cv.Set(val(ov, zero, traverse))
-				nf.SetMapIndex(key, cv)
-			}
+			nf.SetMapIndex(key, cv)
 		}
 	case reflect.Slice:
-		if f.Len() > 0 {
+		if f.Type() == typeOfBytes {
+			nf = f
+		} else {
 			nf = reflect.MakeSlice(f.Type(), f.Len(), f.Cap())
 
 			for i := 0; i < f.Len(); i++ {
 				ov := f.Index(i)
+
 				cv := reflect.New(ov.Type()).Elem()
-
-				// currently, `model:,notraverse` tag is not honoured
-				// for struct with slice
 				traverse := isNoTraverseType(ov)
+				cv.Set(val(ov, traverse))
 
-				cv.Set(val(ov, zero, traverse))
 				nf.Index(i).Set(cv)
 			}
 		}

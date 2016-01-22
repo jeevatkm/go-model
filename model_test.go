@@ -36,7 +36,7 @@ func TestCopyIntegerAndIntegerPtr(t *testing.T) {
 
 	dst := SampleStruct{}
 
-	errs := Copy(&dst, src, false)
+	errs := Copy(&dst, src)
 	if errs != nil {
 		t.Error("Error occurred while copying.")
 	}
@@ -65,7 +65,7 @@ func TestCopyStringAndStringPtr(t *testing.T) {
 
 	dst := SampleStruct{}
 
-	errs := Copy(&dst, &src, false)
+	errs := Copy(&dst, &src)
 	if errs != nil {
 		t.Error("Error occurred while copying.")
 	}
@@ -79,8 +79,10 @@ func TestCopyStringAndStringPtr(t *testing.T) {
 
 func TestCopyBooleanAndBooleanPtr(t *testing.T) {
 	type SampleStruct struct {
-		Boolean    bool
-		BooleanPtr *bool
+		Boolean             bool
+		BooleanPtr          *bool
+		BooleanOmitEmpty    bool  `model:",omitempty"`
+		BooleanOmitEmptyPtr *bool `model:",omitempty"`
 	}
 
 	boolPtr := true
@@ -91,7 +93,7 @@ func TestCopyBooleanAndBooleanPtr(t *testing.T) {
 
 	dst := SampleStruct{}
 
-	errs := Copy(&dst, &src, false)
+	errs := Copy(&dst, &src)
 	if errs != nil {
 		t.Error("Error occurred while copying.")
 	}
@@ -101,6 +103,8 @@ func TestCopyBooleanAndBooleanPtr(t *testing.T) {
 	assertEqual(t, src.Boolean, dst.Boolean)
 	assertEqual(t, *src.BooleanPtr, *dst.BooleanPtr)
 	assertEqual(t, true, src.BooleanPtr != dst.BooleanPtr)
+	assertEqual(t, false, dst.BooleanOmitEmpty)
+	assertEqual(t, true, dst.BooleanOmitEmptyPtr == nil)
 }
 
 func TestCopyFloatAndFloatPtr(t *testing.T) {
@@ -123,7 +127,7 @@ func TestCopyFloatAndFloatPtr(t *testing.T) {
 
 	dst := SampleStruct{}
 
-	errs := Copy(&dst, &src, false)
+	errs := Copy(&dst, &src)
 	if errs != nil {
 		t.Error("Error occurred while copying.")
 	}
@@ -154,7 +158,7 @@ func TestCopySliceStringAndSliceStringPtr(t *testing.T) {
 
 	dst := SampleStruct{}
 
-	errs := Copy(&dst, &src, false)
+	errs := Copy(&dst, &src)
 	if errs != nil {
 		t.Error("Error occurred while copying.")
 	}
@@ -164,6 +168,40 @@ func TestCopySliceStringAndSliceStringPtr(t *testing.T) {
 	assertEqual(t, src.SliceString, dst.SliceString)
 	assertEqual(t, *src.SliceStringPtr, *dst.SliceStringPtr)
 	assertEqual(t, true, src.SliceStringPtr != dst.SliceStringPtr)
+}
+
+func TestCopyByteAndByteSlice(t *testing.T) {
+	type SampleStruct struct {
+		Byte          byte
+		SliceBytes    []byte
+		SliceBytesPtr *[]byte
+	}
+
+	bytesPtr := []byte("This is byte pointer value")
+
+	src := SampleStruct{
+		Byte:          byte('A'),
+		SliceBytes:    []byte("This is byte value"),
+		SliceBytesPtr: &bytesPtr,
+	}
+
+	dst := SampleStruct{}
+
+	errs := Copy(&dst, &src)
+	if errs != nil {
+		t.Error("Error occurred while copying.")
+	}
+
+	logSrcDst(t, src, dst)
+
+	assertEqual(t, src.Byte, dst.Byte)
+	assertEqual(t, true, &src.Byte != &dst.Byte)
+
+	assertEqual(t, src.SliceBytes, dst.SliceBytes)
+	assertEqual(t, true, &src.SliceBytes != &dst.SliceBytes)
+
+	assertEqual(t, *src.SliceBytesPtr, *dst.SliceBytesPtr)
+	assertEqual(t, true, src.SliceBytesPtr != dst.SliceBytesPtr)
 }
 
 func TestCopySliceElementsPtr(t *testing.T) {
@@ -243,7 +281,7 @@ func TestCopySliceElementsPtr(t *testing.T) {
 
 	dst := SampleStruct{}
 
-	errs := Copy(&dst, src, false)
+	errs := Copy(&dst, src)
 	if errs != nil {
 		t.Error("Error occurred while copying.")
 	}
@@ -334,16 +372,16 @@ func TestCopyMapElements(t *testing.T) {
 		MapInterfaces: map[string]interface{}{
 			"inter1": 100001,
 			"inter2": "This is my interface string",
-			"inter3": SampleSubInfo{Name: "struct 3 value", Year: 2003},
+			"inter3": SampleSubInfo{Name: "inter3: struct 1 value", Year: 2003},
 			"inter4": float32(1.6546565),
 			"inter5": float64(1.6546565),
-			"inter6": &SampleSubInfo{Name: "struct 3 value", Year: 2006},
+			"inter6": &SampleSubInfo{Name: "inter6: struct 2 value", Year: 2006},
 		},
 	}
 
 	dst := SampleStruct{}
 
-	errs := Copy(&dst, &src, false)
+	errs := Copy(&dst, &src)
 	if errs != nil {
 		t.Error("Error occurred while copying.")
 	}
@@ -374,14 +412,14 @@ func TestCopyStructEmbededAndAttribute(t *testing.T) {
 	src := SampleStruct{
 		SampleSubInfo:          SampleSubInfo{Name: "This embeded struct", Year: 2016},
 		Level1Struct:           SampleSubInfo{Name: "This level 1 struct", Year: 2015},
-		Level1StructPtr:        &SampleSubInfo{Name: "This level 2 struct", Year: 2014},
+		Level1StructPtr:        &SampleSubInfo{Name: "This level 1 ptr struct", Year: 2014},
 		Level1StructNoTraverse: &SampleSubInfo{Name: "This nested no traverse struct", Year: 2013},
 		CreatedTime:            time.Now(),
 	}
 
 	dst := SampleStruct{}
 
-	errs := Copy(&dst, &src, false)
+	errs := Copy(&dst, &src)
 	if errs != nil {
 		t.Error("Error occurred while copying.")
 	}
@@ -419,7 +457,7 @@ func TestCopyStructEmbededAndAttributeDstPtr(t *testing.T) {
 	src := SampleStruct{
 		SampleSubInfo:          SampleSubInfo{Name: "This embeded struct", Year: 2016},
 		Level1Struct:           SampleSubInfo{Name: "This level 1 struct", Year: 2015},
-		Level1StructPtr:        &SampleSubInfo{Name: "This level 2 struct", Year: 2014},
+		Level1StructPtr:        &SampleSubInfo{Name: "This level 1 ptr struct", Year: 2014},
 		Level1StructNoTraverse: &SampleSubInfo{Name: "This nested no traverse struct", Year: 2013},
 		CreatedTime:            time.Now(),
 	}
@@ -428,7 +466,7 @@ func TestCopyStructEmbededAndAttributeDstPtr(t *testing.T) {
 		Level1StructPtrZero: &SampleSubInfo{Name: "This level 1 struct ptr zero", Year: 2015},
 	}
 
-	errs := Copy(&dst, &src, true)
+	errs := Copy(&dst, &src)
 	if errs != nil {
 		t.Error("Error occurred while copying.")
 	}
@@ -469,11 +507,11 @@ func TestCopyStructEmbededAndAttributeMakeZeroInDst(t *testing.T) {
 	dst := SampleStruct{
 		SampleSubInfo:          SampleSubInfo{Name: "This embeded struct", Year: 2016},
 		Level1Struct:           SampleSubInfo{Name: "This level 1 struct", Year: 2015},
-		Level1StructPtr:        &SampleSubInfo{Name: "This level 2 struct", Year: 2014},
+		Level1StructPtr:        &SampleSubInfo{Name: "This level 1 ptr struct", Year: 2014},
 		Level1StructNoTraverse: &SampleSubInfo{Name: "This nested no traverse struct", Year: 2013},
 	}
 
-	errs := Copy(&dst, &src, true)
+	errs := Copy(&dst, &src)
 	if errs != nil {
 		fmt.Println(errs)
 		t.Error("Error occurred while copying.")
@@ -490,11 +528,57 @@ func TestCopyStructEmbededAndAttributeMakeZeroInDst(t *testing.T) {
 	assertEqual(t, true, dst.Level1StructNoTraverse == nil)
 }
 
+func TestCopyStructEmbededAndAttributeOmitEmpty(t *testing.T) {
+	type SampleSubInfo struct {
+		Name string
+		Year int
+	}
+
+	type SampleStruct struct {
+		Level1Struct           SampleSubInfo  `model:",omitempty,notraverse"`
+		Level1StructPtr        *SampleSubInfo `model:",omitempty"`
+		Level1StructNoTraverse *SampleSubInfo `model:",omitempty,notraverse"`
+		CreatedTime            time.Time
+		SampleSubInfo          `model:",omitempty"`
+	}
+
+	src := SampleStruct{CreatedTime: time.Now()}
+
+	dst := SampleStruct{
+		SampleSubInfo:          SampleSubInfo{Name: "This embeded struct", Year: 2016},
+		Level1Struct:           SampleSubInfo{Name: "This level 1 struct", Year: 2015},
+		Level1StructPtr:        &SampleSubInfo{Name: "This level 1 ptr struct", Year: 2014},
+		Level1StructNoTraverse: &SampleSubInfo{Name: "This nested no traverse struct", Year: 2013},
+	}
+
+	errs := Copy(&dst, src)
+	if errs != nil {
+		fmt.Println(errs)
+		t.Error("Error occurred while copying.")
+	}
+
+	logSrcDst(t, src, dst)
+
+	assertEqual(t, true, src.CreatedTime == dst.CreatedTime)
+
+	assertEqual(t, 2016, dst.Year)
+	assertEqual(t, "This embeded struct", dst.Name)
+
+	assertEqual(t, 2013, dst.Level1StructNoTraverse.Year)
+	assertEqual(t, "This nested no traverse struct", dst.Level1StructNoTraverse.Name)
+
+	assertEqual(t, 2015, dst.Level1Struct.Year)
+	assertEqual(t, "This level 1 struct", dst.Level1Struct.Name)
+
+	assertEqual(t, 2014, dst.Level1StructPtr.Year)
+	assertEqual(t, "This level 1 ptr struct", dst.Level1StructPtr.Name)
+}
+
 func TestCopyDestinationIsNotPointer(t *testing.T) {
 	type SampleStruct struct {
 		Name string
 	}
-	errs := Copy(SampleStruct{}, SampleStruct{Name: "Not a pointer"}, false)
+	errs := Copy(SampleStruct{}, SampleStruct{Name: "Not a pointer"})
 
 	assertEqual(t, "Destination struct is not a pointer", errs[0].Error())
 }
@@ -503,7 +587,7 @@ func TestCopyInputIsNotStruct(t *testing.T) {
 	type SampleStruct struct {
 		Name string
 	}
-	errs := Copy(&SampleStruct{}, map[string]string{"1": "2001"}, false)
+	errs := Copy(&SampleStruct{}, map[string]string{"1": "2001"})
 
 	assertEqual(t, "Source or Destination is not a struct", errs[0].Error())
 }
@@ -517,7 +601,7 @@ func TestCopyStructElementKindDiff(t *testing.T) {
 		Name int
 	}
 
-	errs := Copy(&Destination{}, Source{Name: "This struct element kind is different"}, false)
+	errs := Copy(&Destination{}, Source{Name: "This struct element kind is different"})
 
 	assertEqual(t, "Field: 'Name', src [string] & dst [int] kind doesn't match", errs[0].Error())
 }
@@ -550,7 +634,7 @@ func TestCopyStructElementTypeDiffOnLevel1(t *testing.T) {
 
 	dst := Destination{}
 
-	errs := Copy(&dst, src, false)
+	errs := Copy(&dst, src)
 
 	logSrcDst(t, src, dst)
 
@@ -585,7 +669,7 @@ func TestCopyStructTypeDiffOnLevel1Interface(t *testing.T) {
 
 	dst := Destination{}
 
-	errs := Copy(&dst, src, false)
+	errs := Copy(&dst, src)
 
 	logSrcDst(t, src, dst)
 
@@ -607,7 +691,7 @@ func TestCopyStructElementIsNotValidInDst(t *testing.T) {
 	src := Source{Year: 2016}
 	dst := Destination{Name: "Value is gonna disappear"}
 
-	errs := Copy(&dst, src, true)
+	errs := Copy(&dst, src)
 
 	assertEqual(t, "Field: 'Year', dst is not valid", errs[0].Error())
 }
@@ -626,7 +710,7 @@ func TestCopyStructZeroValToDst(t *testing.T) {
 	src := Source{Year: 2016}
 	dst := Destination{Name: "Value is gonna disappear"}
 
-	errs := Copy(&dst, src, true)
+	errs := Copy(&dst, src)
 	if errs != nil {
 		t.Error("Error occurred while copying.")
 	}
@@ -723,7 +807,7 @@ type SampleSubInfoDeep struct {
 }
 
 func TestCopyZeroInput(t *testing.T) {
-	errs := Copy(&SampleStruct{}, SampleStruct{}, false)
+	errs := Copy(&SampleStruct{}, SampleStruct{})
 
 	assertEqual(t, "Source struct is empty", errs[0].Error())
 }
