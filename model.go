@@ -45,7 +45,8 @@ var (
 	// NoTraverseTypeList keeps track of no-traverse type list at library level
 	NoTraverseTypeList map[reflect.Type]bool
 
-	typeOfBytes = reflect.TypeOf([]byte(nil))
+	typeOfBytes     = reflect.TypeOf([]byte(nil))
+	typeOfInterface = reflect.TypeOf((*interface{})(nil)).Elem()
 )
 
 // AddNoTraverseType method adds the Go Lang type into global `NoTraverseTypeList`.
@@ -539,7 +540,6 @@ func copyVal(f reflect.Value, notraverse bool) reflect.Value {
 	// reflect.Slice3 is not yet supported by this library
 	switch f.Kind() {
 	case reflect.Struct:
-
 		if notraverse {
 			nf = f
 		} else {
@@ -641,18 +641,30 @@ func mapVal(f reflect.Value, notraverse bool) reflect.Value {
 		if f.Type() == typeOfBytes {
 			nf = f
 		} else {
-			nf = reflect.MakeSlice(f.Type(), f.Len(), f.Cap())
-			for i := 0; i < f.Len(); i++ {
-				sv := f.Index(i)
-				dv := reflect.New(sv.Type()).Elem()
+			if f.Len() > 0 {
+				fsv := f.Index(0)
 
-				if isStruct(sv) {
-					// TODO
+				// figure out target slice type
+				if isStruct(fsv) {
+					nf = reflect.MakeSlice(reflect.SliceOf(typeOfInterface), f.Len(), f.Cap())
 				} else {
-					dv.Set(mapVal(sv, false))
+					nf = reflect.MakeSlice(f.Type(), f.Len(), f.Cap())
 				}
 
-				nf.Index(i).Set(dv)
+				for i := 0; i < f.Len(); i++ {
+					sv := f.Index(i)
+
+					var dv reflect.Value
+					if isStruct(sv) {
+						dv = reflect.New(typeOfInterface).Elem()
+						dv.Set(mapVal(sv, isNoTraverseType(sv)))
+					} else {
+						dv = reflect.New(sv.Type()).Elem()
+						dv.Set(mapVal(sv, false))
+					}
+
+					nf.Index(i).Set(dv)
+				}
 			}
 		}
 	default:

@@ -1458,38 +1458,52 @@ func TestMapStructEmbededAndAttribute(t *testing.T) {
 	assertEqual(t, false, notfound3)
 }
 
-// func TestMapSliceStructAndSliceStructPtr(t *testing.T) {
-// 	type SampleSubInfo struct {
-// 		Name string
-// 		Year int `model:"year"`
-// 		Goal string
-// 	}
-// 	type SampleStruct struct {
-// 		SliceStruct    []SampleSubInfo
-// 		SliceStructPtr *[]SampleSubInfo
-// 	}
+func TestMapSliceStructAndSliceStructPtr(t *testing.T) {
+	type SampleSubInfo struct {
+		Name string
+		Year int `model:"year"`
+		Goal string
+	}
+	type SampleStruct struct {
+		SliceStruct    []SampleSubInfo
+		SliceStructPtr *[]SampleSubInfo
+	}
 
-// 	sliceStructPtr := []SampleSubInfo{
-// 		SampleSubInfo{Name: "Struct: Slice Ptr 1", Year: 2016},
-// 		SampleSubInfo{Name: "Struct: Slice Ptr 2", Year: 2015},
-// 		SampleSubInfo{Name: "Struct: Slice Ptr 3", Year: 2014},
-// 	}
-// 	src := SampleStruct{
-// 		SliceStruct: []SampleSubInfo{
-// 			SampleSubInfo{Name: "Struct: Slice 1", Year: 2006},
-// 			SampleSubInfo{Name: "Struct: Slice 2", Year: 2005},
-// 			SampleSubInfo{Name: "Struct: Slice 3", Year: 2004},
-// 		},
-// 		SliceStructPtr: &sliceStructPtr,
-// 	}
+	sliceStructPtr := []SampleSubInfo{
+		SampleSubInfo{Name: "Struct: Slice Ptr 1", Year: 2016},
+		SampleSubInfo{Name: "Struct: Slice Ptr 2", Year: 2015},
+		SampleSubInfo{Name: "Struct: Slice Ptr 3", Year: 2014},
+	}
+	src := SampleStruct{
+		SliceStruct: []SampleSubInfo{
+			SampleSubInfo{Name: "Struct: Slice 1", Year: 2006},
+			SampleSubInfo{Name: "Struct: Slice 2", Year: 2005},
+			SampleSubInfo{Name: "Struct: Slice 3", Year: 2004},
+		},
+		SliceStructPtr: &sliceStructPtr,
+	}
 
-// 	result, err := Map(src)
-// 	if err != nil {
-// 		t.Error("Error occurred while Map export.")
-// 	}
+	result, err := Map(src)
+	if err != nil {
+		t.Error("Error occurred while Map export.")
+	}
 
-// 	logSrcDst(t, src, result)
-// }
+	logSrcDst(t, src, result)
+
+	value1 := result["SliceStruct"].([]interface{})[0].(map[string]interface{})
+
+	value11, found11 := value1["Name"]
+	assertEqual(t, true, found11)
+	assertEqual(t, src.SliceStruct[0].Name, value11.(string))
+
+	value12, found12 := value1["year"]
+	assertEqual(t, true, found12)
+	assertEqual(t, src.SliceStruct[0].Year, value12.(int))
+
+	value13, found13 := value1["Goal"]
+	assertEqual(t, true, found13)
+	assertEqual(t, src.SliceStruct[0].Goal, value13.(string))
+}
 
 //
 // helper test methods
