@@ -1,24 +1,25 @@
 # go-model [![Build Status](https://travis-ci.org/jeevatkm/go-model.svg?branch=master)](https://travis-ci.org/jeevatkm/go-model) [![GoCover](http://gocover.io/_badge/github.com/jeevatkm/go-model)](http://gocover.io/github.com/jeevatkm/go-model) [![GoDoc](https://godoc.org/github.com/jeevatkm/go-model?status.svg)](https://godoc.org/github.com/jeevatkm/go-model) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Robust & Easy to use model mapper and model utility methods for Go. Typical method(s) increases productivity and makes Go developement more fun :)
+Robust & Easy to use model mapper and model utility methods for Go. Typical method(s) increases productivity and make Go developement more fun :)
+
+**Currently library is v0.1-beta, soon it will be released**
 
 go-model tested with Go `v1.2` and above.
 
-**Development is in progress :)**
-
 ## Features
-Will describe in detail after initial release. I'm sure it will be very helpful, since its born from typical need while developing Go application and utility.
+**in-progress...**
+<!-- Will describe in detail after initial release. I'm sure it will be very helpful, since its born from typical need while developing Go application and utility. -->
 
-<!-- ## Installation
+## Installation
 
-#### Stable - Version
+<!-- #### Stable - Version
 Please refer section [Versioning](#versioning) for detailed info.
 
 ```sh
 # install the library
 go get gopkg.in/jeevatkm/go-model.v0
 ```
-
+ -->
 #### Latest
 ```sh
 # install the latest & greatest library
@@ -31,7 +32,9 @@ Import go-model into your code and refer it as `model`.
 import (
   "gopkg.in/jeevatkm/go-model.v0"
 )
-``` -->
+```
+
+**Documentation is in-progress...**
 
 ## Versioning
 go-model releases versions according to [Semantic Versioning](http://semver.org)
