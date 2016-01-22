@@ -805,6 +805,14 @@ func TestIsZeroNotAStructInput(t *testing.T) {
 // Map test cases
 //
 
+func TestMapMethodValidation(t *testing.T) {
+	_, err1 := Map(nil)
+	assertEqual(t, "Invalid input <nil>", err1.Error())
+
+	_, err2 := Map("not struct")
+	assertEqual(t, "Input is not a struct", err2.Error())
+}
+
 func TestMapIntegerAndIntegerPtrWithDefaultKeyName(t *testing.T) {
 	type SampleStruct struct {
 		Int      int
@@ -980,10 +988,6 @@ func TestMapByteAndByteSlice(t *testing.T) {
 	assertEqual(t, true, found3)
 	assertEqual(t, true, reflect.DeepEqual(src.SliceBytesPtr, value3.(*[]byte)))
 }
-
-//
-// TODO for primitive type test
-//
 
 func TestMapSliceStringAndSliceStringPtr(t *testing.T) {
 	type SampleStruct struct {
