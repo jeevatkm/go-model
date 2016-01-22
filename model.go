@@ -417,7 +417,7 @@ func doCopy(dv, sv reflect.Value) []error {
 						// This is struct kind and its present in NoTraverseTypeList,
 						// so go-model is not gonna traverse inside.
 						// however will take care of field value
-						dfv.Set(val(sfv, true))
+						dfv.Set(copyVal(sfv, true))
 					} else {
 						ndv := reflect.New(indirect(sfv).Type())
 						innerErrs := doCopy(ndv, sfv)
@@ -436,7 +436,7 @@ func doCopy(dv, sv reflect.Value) []error {
 					continue
 				}
 
-				dfv.Set(val(sfv, false))
+				dfv.Set(copyVal(sfv, false))
 			}
 		} else {
 
@@ -519,7 +519,7 @@ func doMap(sv reflect.Value) map[string]interface{} {
 	return m
 }
 
-func val(f reflect.Value, notraverse bool) reflect.Value {
+func copyVal(f reflect.Value, notraverse bool) reflect.Value {
 	var (
 		ptr bool
 		nf  reflect.Value
@@ -559,7 +559,7 @@ func val(f reflect.Value, notraverse bool) reflect.Value {
 
 			cv := reflect.New(ov.Type()).Elem()
 			traverse := isNoTraverseType(ov)
-			cv.Set(val(ov, traverse))
+			cv.Set(copyVal(ov, traverse))
 
 			nf.SetMapIndex(key, cv)
 		}
@@ -574,7 +574,7 @@ func val(f reflect.Value, notraverse bool) reflect.Value {
 
 				cv := reflect.New(ov.Type()).Elem()
 				traverse := isNoTraverseType(ov)
-				cv.Set(val(ov, traverse))
+				cv.Set(copyVal(ov, traverse))
 
 				nf.Index(i).Set(cv)
 			}
