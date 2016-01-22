@@ -3,8 +3,8 @@
 // license that can be found in the LICENSE file.
 
 /*
-Package model provides robust & easy to use model mapper and model utility methods for Go.
-These typical methods increases productivity and makes Go developement more fun :)
+The Package Model provides robust and easy-to-use model mapper and model utility methods for Go.
+These typical methods increase productivity and make Go developement more fun :)
 */
 package model
 
@@ -27,14 +27,14 @@ const (
 	// ArchiveInfo	StoreInfo	`model:"archiveInfo,notraverse"`
 	TagName = "model"
 
-	// OmitField value is used omit field(s) from go-model processing
+	// OmitField value is used to omit field(s) from processing
 	OmitField = "-"
 
-	// OmitEmpty option is used skip field(s) from output if zero value
+	// OmitEmpty option is used skip field(s) from output if it's zero value
 	OmitEmpty = "omitempty"
 
-	// NoTraverse means go-model library will not traverse inside those struct object.
-	// However, attribute value will be evaluated/processed by library.
+	// NoTraverse option makes sure the go-model library to not to traverse inside the struct object.
+	// However, the field value will be evaluated or processed by library.
 	NoTraverse = "notraverse"
 )
 
@@ -49,7 +49,7 @@ var (
 )
 
 // AddNoTraverseType method adds the Go Lang type into global `NoTraverseTypeList`.
-// Those type(s) from list is considered as "No Traverse" type by go-model library
+// The type(s) from list is considered as "No Traverse" type by go-model library
 // for model mapping process. See also `RemoveNoTraverseType()` method.
 // 		model.AddNoTraverseType(time.Time{}, &time.Time{}, os.File{}, &os.File{})
 //
@@ -86,19 +86,19 @@ func RemoveNoTraverseType(i ...interface{}) {
 }
 
 // IsZero method returns true if all the exported fields in a given struct
-// is a zero value. If its not struct then method returns false.
+// are zero value. If it's not struct then method returns false.
 //
 // A "model" tag with the value of "-" is ignored by library for processing.
-// 		For Example:
+// 		Example:
 //
 // 		// Field is ignored by go-model processing
 // 		BookCount	int	`model:"-"`
 // 		BookCode	string	`model:"-"`
 //
 // A "model" tag value with the option of "notraverse"; library will not traverse
-// inside those struct object. However field value will be evaluated whether
-// its zero or not.
-// 		For Example:
+// inside the struct object. However, the field value will be evaluated whether
+// it's zero value or not.
+// 		Example:
 //
 // 		// Field is not traversed but value is evaluated/processed
 // 		ArchiveInfo	BookArchive	`model:"archiveInfo,notraverse"`
@@ -148,16 +148,14 @@ func IsZero(s interface{}) bool {
 	return true
 }
 
-// Copy method copies all the exported values from source struct into destination struct.
+// Copy method copies all the exported field values from source struct into destination struct.
 // The "Name", "Type" and "Kind" is should match to qualify a copy. One exception though;
-// if the destination Field type is "interface{}" then "Type" and "Kind" doesn't matter,
-// source value gets copied to that destination Field.
+// if the destination field type is "interface{}" then "Type" and "Kind" doesn't matter,
+// source value gets copied to that destination field.
 //
-// Copy method handles:
-// 		// List out what copy method can do
+// 		Example:
 //
-// Sample Snippet
-// 		src := SampleStruct{ /* source values goes here */ }
+// 		src := SampleStruct{ /* source struct values goes here */ }
 // 		dst := SampleStruct{}
 //
 // 		errs := model.Copy(&dst, src)
@@ -166,30 +164,30 @@ func IsZero(s interface{}) bool {
 // 		}
 //
 // Note:
-// [1] Copy process continues regardless of the case it qualify or not. Not qualified field(s)
+// [1] Copy process continues regardless of the case it qualifies or not. The non-qualified field(s)
 // gets added to '[]error' that you will get at the end.
-// [2] Slice3 type is not yet supported by Copy method.
+// [2] Slice3 type is not yet supported.
 //
 // A "model" tag with the value of "-" is ignored by library for processing.
-// 		For Example:
+// 		Example:
 //
-// 		// Field is ignored by go-model processing
+// 		// Field is ignored while processing
 // 		BookCount	int	`model:"-"`
 // 		BookCode	string	`model:"-"`
 //
 // A "model" tag value with the option of "omitempty"; library will not copy those values
-// into destination struct object. It may be very handy for partial put or patch update
-// request scenarios; you don't want to copy empty/zero value into destination object
-// 		For Example:
+// into destination struct object. It may be handy for partial put or patch update
+// request scenarios; if you don't want to copy empty/zero value into destination object.
+// 		Example:
 //
-// 		// Field is not copy into 'dst' if it is empty/zero value
+// 		// Field is not copy into 'dst' if it's empty/zero value
 // 		ArchiveInfo	BookArchive	`model:"archiveInfo,omitempty"`
 // 		Region		BookLocale	`model:",omitempty,notraverse"`
 //
 // A "model" tag value with the option of "notraverse"; library will not traverse
-// inside those struct object. However field value will be evaluated whether
-// its zero or not.
-// 		For Example:
+// inside the struct object. However, the field value will be evaluated whether
+// it's zero value or not then accordingly copied to the destination object.
+// 		Example:
 //
 // 		// Field is not traversed but value is evaluated/processed
 // 		ArchiveInfo	BookArchive	`model:"archiveInfo,notraverse"`
@@ -221,6 +219,53 @@ func Copy(dst, src interface{}) []error {
 	return nil
 }
 
+// Map method converts all the exported field values from given struct into map[string]interface{}.
+// where the keys of the map are the field names and the values of the map is associated
+// values of the field.
+//
+// 		Example:
+//
+// 		src := SampleStruct{ /* source struct values goes here */ }
+//
+// 		err := model.Map(src)
+// 		if err != nil {
+// 			fmt.Println("Error:", err)
+// 		}
+//
+// Note:
+// [1] Slice3 type is not yet supported.
+//
+// The default 'Key Name' string is the struct field name. However, can be
+// changed in the struct field's tag value via "model" tag.
+// 		Example:
+//
+// 		// Now field 'Key Name' is customized
+// 		BookTitle	string	`model:"bookTitle"`
+//
+// A "model" tag with the value of "-" is ignored by library for processing.
+// 		Example:
+//
+// 		// Field is ignored while processing
+// 		BookCount	int	`model:"-"`
+// 		BookCode	string	`model:"-"`
+//
+// A "model" tag value with the option of "omitempty"; library will not include those values
+// while converting into map[string]interface{}. If it's empty/zero value.
+// 		Example:
+//
+// 		// Field is not included in result map if it's empty/zero value
+// 		ArchivedDate	time.Time	`model:"archivedDate,omitempty"`
+// 		Region		BookLocale	`model:",omitempty,notraverse"`
+//
+// A "model" tag value with the option of "notraverse"; library will not traverse
+// inside the struct object. However, the field value will be evaluated whether
+// it's zero value or not then accordingly added to the result map.
+// 		Example:
+//
+// 		// Field is not traversed but value is evaluated/processed
+// 		ArchivedDate	time.Time	`model:"archivedDate,notraverse"`
+// 		Region		BookLocale	`model:",notraverse"`
+//
 func Map(s interface{}) (map[string]interface{}, error) {
 	if s == nil {
 		return nil, errors.New("Invalid input <nil>")
