@@ -155,8 +155,8 @@ func IsZero(s interface{}) bool {
 //
 // 		Example:
 //
-// 		src := SampleStruct{ /* source struct field values goes here */ }
-// 		dst := SampleStruct{}
+// 		src := SampleStruct { /* source struct field values go here */ }
+// 		dst := SampleStruct {}
 //
 // 		errs := model.Copy(&dst, src)
 // 		if errs != nil {
@@ -166,7 +166,7 @@ func IsZero(s interface{}) bool {
 // Note:
 // [1] Copy process continues regardless of the case it qualifies or not. The non-qualified field(s)
 // gets added to '[]error' that you will get at the end.
-// [2] Two dimensional slice type is not yet supported.
+// [2] Two dimensional slice type is not supported yet.
 //
 // A "model" tag with the value of "-" is ignored by library for processing.
 // 		Example:
@@ -220,13 +220,13 @@ func Copy(dst, src interface{}) []error {
 	return nil
 }
 
-// Map method converts all the exported field values from given struct into `map[string]interface{}`.
-// Where the keys of the map are the field names and the values of the map is associated
+// Map method converts all the exported field values from the given struct into `map[string]interface{}`.
+// In which the keys of the map are the field names and the values of the map are the associated
 // values of the field.
 //
 // 		Example:
 //
-// 		src := SampleStruct{ /* source struct field values goes here */ }
+// 		src := SampleStruct { /* source struct field values go here */ }
 //
 // 		err := model.Map(src)
 // 		if err != nil {
@@ -234,9 +234,9 @@ func Copy(dst, src interface{}) []error {
 // 		}
 //
 // Note:
-// [1] Two dimensional slice type is not yet supported.
+// [1] Two dimensional slice type is not supported yet.
 //
-// The default 'Key Name' string is the struct field name. However, can be
+// The default 'Key Name' string is the struct field name. However, it can be
 // changed in the struct field's tag value via "model" tag.
 // 		Example:
 //
@@ -251,7 +251,7 @@ func Copy(dst, src interface{}) []error {
 // 		BookCode	string	`model:"-"`
 //
 // A "model" tag value with the option of "omitempty"; library will not include those values
-// while converting into map[string]interface{}. If it's empty/zero value.
+// while converting to map[string]interface{}. If it's empty/zero value.
 // 		Example:
 //
 // 		// Field is not included in result map if it's empty/zero value
@@ -260,7 +260,7 @@ func Copy(dst, src interface{}) []error {
 //
 // A "model" tag value with the option of "notraverse"; library will not traverse
 // inside the struct object. However, the field value will be evaluated whether
-// it's zero value or not then accordingly added to the result map.
+// it's zero value or not, and then added to the result map accordingly.
 // 		Example:
 //
 // 		// Field is not traversed but value is evaluated/processed
