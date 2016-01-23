@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-The Package Model provides robust and easy-to-use model mapper and model utility methods for Go.
+Package Model provides robust and easy-to-use model mapper and model utility methods for Go.
 These typical methods increase productivity and make Go developement more fun :)
 */
 package model
@@ -121,7 +121,7 @@ func IsZero(s interface{}) bool {
 	for _, f := range fields {
 		fv := sv.FieldByName(f.Name)
 
-		// embeded or nested struct
+		// embedded or nested struct
 		if isStruct(fv) {
 
 			if isNoTraverseType(fv) || isNoTraverse(f.Tag.Get(TagName)) {
@@ -220,8 +220,8 @@ func Copy(dst, src interface{}) []error {
 	return nil
 }
 
-// Map method converts all the exported field values from given struct into map[string]interface{}.
-// where the keys of the map are the field names and the values of the map is associated
+// Map method converts all the exported field values from given struct into `map[string]interface{}`.
+// Where the keys of the map are the field names and the values of the map is associated
 // values of the field.
 //
 // 		Example:
@@ -411,7 +411,7 @@ func doCopy(dv, sv reflect.Value) []error {
 			// check dst field settable or not
 			if dfv.CanSet() {
 
-				// handle embeded or nested struct
+				// handle embedded or nested struct
 				if isStruct(sfv) {
 
 					if noTraverse {
@@ -481,7 +481,7 @@ func doMap(sv reflect.Value) map[string]interface{} {
 		// field value is not zero
 		if isVal {
 
-			// handle embeded or nested struct
+			// handle embedded or nested struct
 			if isStruct(fv) {
 
 				if noTraverse {
@@ -491,7 +491,7 @@ func doMap(sv reflect.Value) map[string]interface{} {
 					m[keyName] = mapVal(fv, true).Interface()
 				} else {
 
-					// embeded struct values gets mapped at
+					// embedded struct values gets mapped at
 					// Field level instead of object
 					fmv := doMap(fv)
 					if f.Anonymous {
