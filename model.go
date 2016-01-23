@@ -2,10 +2,8 @@
 // resty source code and usage is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-/*
-Package Model provides robust and easy-to-use model mapper and model utility methods for Go.
-These typical methods increase productivity and make Go developement more fun :)
-*/
+// Package Model provides robust and easy-to-use model mapper and model utility methods for Go.
+// These typical methods increase productivity and make Go developement more fun :)
 package model
 
 import (
@@ -14,15 +12,14 @@ import (
 	"net/http"
 	"os"
 	"reflect"
-	"strings"
 	"time"
 )
 
 const (
 	// TagName is used to mention field options for go-model library.
 	//
-	// For Example:
-	// ------------
+	// Example:
+	// --------
 	// BookCount	int		`model:"bookCount"`
 	// ArchiveInfo	StoreInfo	`model:"archiveInfo,notraverse"`
 	TagName = "model"
@@ -123,8 +120,10 @@ func IsZero(s interface{}) bool {
 
 		// embedded or nested struct
 		if isStruct(fv) {
+			tag := newTag(f.Tag.Get(TagName))
 
-			if isNoTraverseType(fv) || isNoTraverse(f.Tag.Get(TagName)) {
+			// check type is in NoTraverseTypeList or has 'notraverse' tag option
+			if isNoTraverseType(fv) || tag.isNoTraverse() {
 
 				// not traversing inside, but evaluating a value
 				if !isFieldZero(fv) {
@@ -156,7 +155,7 @@ func IsZero(s interface{}) bool {
 //
 // 		Example:
 //
-// 		src := SampleStruct{ /* source struct values goes here */ }
+// 		src := SampleStruct{ /* source struct field values goes here */ }
 // 		dst := SampleStruct{}
 //
 // 		errs := model.Copy(&dst, src)
@@ -167,7 +166,7 @@ func IsZero(s interface{}) bool {
 // Note:
 // [1] Copy process continues regardless of the case it qualifies or not. The non-qualified field(s)
 // gets added to '[]error' that you will get at the end.
-// [2] Slice3 type is not yet supported.
+// [2] Two dimensional slice type is not yet supported.
 //
 // A "model" tag with the value of "-" is ignored by library for processing.
 // 		Example:
@@ -199,6 +198,7 @@ func Copy(dst, src interface{}) []error {
 
 	sv := valueOf(src)
 	dv := valueOf(dst)
+
 	if !isStruct(sv) || !isStruct(dv) {
 		return append(errs, errors.New("Source or Destination is not a struct"))
 	}
@@ -211,7 +211,7 @@ func Copy(dst, src interface{}) []error {
 		return append(errs, errors.New("Source struct is empty"))
 	}
 
-	// processing copy value(s)
+	// processing, copy field value(s)
 	errs = doCopy(dv, sv)
 	if errs != nil {
 		return errs
@@ -226,7 +226,7 @@ func Copy(dst, src interface{}) []error {
 //
 // 		Example:
 //
-// 		src := SampleStruct{ /* source struct values goes here */ }
+// 		src := SampleStruct{ /* source struct field values goes here */ }
 //
 // 		err := model.Map(src)
 // 		if err != nil {
@@ -234,7 +234,7 @@ func Copy(dst, src interface{}) []error {
 // 		}
 //
 // Note:
-// [1] Slice3 type is not yet supported.
+// [1] Two dimensional slice type is not yet supported.
 //
 // The default 'Key Name' string is the struct field name. However, can be
 // changed in the struct field's tag value via "model" tag.
@@ -278,7 +278,7 @@ func Map(s interface{}) (map[string]interface{}, error) {
 		return nil, errors.New("Input is not a struct")
 	}
 
-	// processing map value(s)
+	// processing, field value(s) into map
 	return doMap(sv), nil
 }
 
@@ -292,7 +292,7 @@ func init() {
 	// Default NoTraverseTypeList
 	// --------------------------
 	// Auto No Traverse struct list for not traversing Deep Level
-	// However, attribute value will be evaluated by go-model library
+	// However, field value will be evaluated/processed by go-model library
 	AddNoTraverseType(
 		time.Time{},
 		&time.Time{},
@@ -320,8 +320,8 @@ func getFields(v reflect.Value) []reflect.StructField {
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
 
-		// Only exported fields of a struct can be accessed,
-		// non-exported fields will be ignored
+		// Only exported fields of a struct can be accessed.
+		// So, non-exported fields will be ignored
 		if f.PkgPath == "" {
 
 			// `model="-"` attributes will be omitted
@@ -365,7 +365,7 @@ func doCopy(dv, sv reflect.Value) []error {
 		sfv := sv.FieldByName(f.Name)
 		tag := newTag(f.Tag.Get(TagName))
 
-		// compute no-traverse scope
+		// check type is in NoTraverseTypeList or has 'notraverse' tag option
 		noTraverse := (isNoTraverseType(sfv) || tag.isNoTraverse())
 
 		// check whether field is zero or not
@@ -415,8 +415,8 @@ func doCopy(dv, sv reflect.Value) []error {
 				if isStruct(sfv) {
 
 					if noTraverse {
-						// This is struct kind and its present in NoTraverseTypeList,
-						// so go-model is not gonna traverse inside.
+						// This is struct kind and it's present in NoTraverseTypeList or
+						// has 'notraverse' tag option. So go-model is not gonna traverse inside.
 						// however will take care of field value
 						dfv.Set(copyVal(sfv, true))
 					} else {
@@ -467,7 +467,7 @@ func doMap(sv reflect.Value) map[string]interface{} {
 			keyName = tag.Name
 		}
 
-		// compute no-traverse scope
+		// check type is in NoTraverseTypeList or has 'notraverse' tag option
 		noTraverse := (isNoTraverseType(fv) || tag.isNoTraverse())
 
 		// check whether field is zero or not
@@ -485,14 +485,14 @@ func doMap(sv reflect.Value) map[string]interface{} {
 			if isStruct(fv) {
 
 				if noTraverse {
-					// This is struct kind and its present in NoTraverseTypeList,
-					// so go-model is not gonna traverse inside.
+					// This is struct kind and it's present in NoTraverseTypeList or
+					// has 'notraverse' tag option. So go-model is not gonna traverse inside.
 					// however will take care of field value
 					m[keyName] = mapVal(fv, true).Interface()
 				} else {
 
-					// embedded struct values gets mapped at
-					// Field level instead of object
+					// embedded struct values gets mapped at embedded level
+					// as represented by Go instead of object
 					fmv := doMap(fv)
 					if f.Anonymous {
 						for k, v := range fmv {
@@ -531,13 +531,13 @@ func copyVal(f reflect.Value, notraverse bool) reflect.Value {
 		f = valueOf(f.Interface())
 	}
 
-	// ptr, let's take a note
+	// if ptr, let's take a note
 	if isPtr(f) {
 		ptr = true
 		f = f.Elem()
 	}
 
-	// reflect.Slice3 is not yet supported by this library
+	// two dimensional slice is not yet supported by this library
 	switch f.Kind() {
 	case reflect.Struct:
 		if notraverse {
@@ -605,13 +605,13 @@ func mapVal(f reflect.Value, notraverse bool) reflect.Value {
 		f = valueOf(f.Interface())
 	}
 
-	// ptr, let's take a note
+	// if ptr, let's take a note
 	if isPtr(f) {
 		ptr = true
 		f = f.Elem()
 	}
 
-	// reflect.Slice3 is not yet supported by this library
+	// two dimensional slice is not yet supported by this library
 	switch f.Kind() {
 	case reflect.Struct:
 		if notraverse {
@@ -693,10 +693,6 @@ func zeroVal(f reflect.Value) reflect.Value {
 
 	// if not a pointer then get zero value for interface
 	return indirect(valueOf(ftz.Interface()))
-}
-
-func isNoTraverse(tag string) bool {
-	return strings.Contains(tag, NoTraverse)
 }
 
 func dTypeOf(v reflect.Value) reflect.Type {
