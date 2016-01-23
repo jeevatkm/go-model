@@ -9,11 +9,11 @@ go-model provides handy methods to process struct with below highlighted feature
 * Embedded/Anonymous struct
 * Multi-level nested struct/map/slice
 * Pointer and non-pointer within struct/map/slice
-* Struct within map and slice elements
+* Struct within map and slice
 * Embedded/Anonymous fields appear in map at same level as represented by Go
 * Interface within struct/map/slice
-* Options to name map key, omit empty fields, and instruct no to traverse with struct/map/slice, etc
-* Have global no traverse type list
+* Add global no traverse type to the list or use `notraverse` option in the struct field
+* Options to name map key, omit empty fields, and instruct not to traverse with struct/map/slice
 
 ## Installation
 
@@ -43,8 +43,8 @@ import (
 * Copy - [usage](#copy-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#Copy)
 * Map - [usage](#map-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#Map)
 * IsZero - [usage](#iszero-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#IsZero)
-* AddNoTraverseType - [usage](), [godoc](https://godoc.org/github.com/jeevatkm/go-model#AddNoTraverseType)
-* RemoveNoTraverseType - [usage](), [godoc](https://godoc.org/github.com/jeevatkm/go-model#RemoveNoTraverseType)
+* AddNoTraverseType - [usage](#addnotraversetype--removenotraversetype-methods), [godoc](https://godoc.org/github.com/jeevatkm/go-model#AddNoTraverseType)
+* RemoveNoTraverseType - [usage](#addnotraversetype--removenotraversetype-methods), [godoc](https://godoc.org/github.com/jeevatkm/go-model#RemoveNoTraverseType)
 
 #### Copy Method
 How do I copy my struct object into another? Not to worry go-model does deep copy.
@@ -93,11 +93,11 @@ fmt.Println("Hey, I have zero values:", isEmpty)
 ```
 
 #### AddNoTraverseType & RemoveNoTraverseType Methods
-There are scenarios, you want object values but not to traverse/look inside the struct object. Use `notraverse` option in the model tag for those fieds or Add it NoTraverseTypeList. Customize it as per your need. 
+There are scenarios, you want object values but not to traverse/look inside the struct object. Use `notraverse` option in the model tag for those fieds or Add it `NoTraverseTypeList`. Customize it as per your need. 
 
-Default NoTraverseTypeList has these types `time.Time{}`, `&time.Time{}`, `os.File{}`, `&os.File{}`, `http.Request{}`, `&http.Request{}`, `http.Response{}`, `&http.Response{}`.
+Default `NoTraverseTypeList` has these types `time.Time{}`, `&time.Time{}`, `os.File{}`, `&os.File{}`, `http.Request{}`, `&http.Request{}`, `http.Response{}`, `&http.Response{}`.
 ```go
-// If you have added your type into list then you no need mention `notraverse` option for those types.
+// If you have added your type into list then you no need to mention `notraverse` option for those types.
 
 // Adding type into NoTraverseTypeList
 model.AddNoTraverseType(time.Location{}, &time.Location{})
