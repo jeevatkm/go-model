@@ -1414,7 +1414,7 @@ func TestMapStructEmbededAndAttribute(t *testing.T) {
 
 	// Assertion
 
-	// Embeded struct assertion
+	// Embedded struct assertion
 	// Field: Name
 	value1, found1 := result["Name"]
 	assertEqual(t, true, found1)

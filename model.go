@@ -2,8 +2,8 @@
 // resty source code and usage is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-// Package Model provides robust and easy-to-use model mapper and model utility methods for Go.
-// These typical methods increase productivity and make Go developement more fun :)
+// Package model provides robust and easy-to-use model mapper and model utility methods for Go.
+// These typical methods increase productivity and make Go development more fun :)
 package model
 
 import (
@@ -311,49 +311,6 @@ func init() {
 // Non-exported methods of model library
 //
 
-func getFields(v reflect.Value) []reflect.StructField {
-	v = indirect(v)
-	t := v.Type()
-
-	var fs []reflect.StructField
-
-	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
-
-		// Only exported fields of a struct can be accessed.
-		// So, non-exported fields will be ignored
-		if f.PkgPath == "" {
-
-			// `model="-"` attributes will be omitted
-			if tag := f.Tag.Get(TagName); tag == OmitField {
-				continue
-			}
-
-			fs = append(fs, f)
-		}
-	}
-
-	return fs
-}
-
-func isFieldZero(f reflect.Value) bool {
-	// zero value of the given field
-	// For example: reflect.Zero(reflect.TypeOf(42)) returns a Value with Kind Int and value 0
-	zero := reflect.Zero(f.Type()).Interface()
-
-	return reflect.DeepEqual(f.Interface(), zero)
-}
-
-func isNoTraverseType(v reflect.Value) bool {
-	t := dTypeOf(v)
-
-	if _, ok := NoTraverseTypeList[t]; ok {
-		return true
-	}
-
-	return false
-}
-
 func doCopy(dv, sv reflect.Value) []error {
 	dv = indirect(dv)
 	sv = indirect(sv)
@@ -380,31 +337,10 @@ func doCopy(dv, sv reflect.Value) []error {
 
 		if isVal {
 
-			// check dst field is exists, if not valid move on
-			if !dfv.IsValid() {
-				errs = append(errs, fmt.Errorf("Field: '%v', dst is not valid", f.Name))
-				continue
-			}
-
-			// check kind of src and dst, if doesn't match move on
-			if (sfv.Kind() != dfv.Kind()) && !isInterface(dfv) {
-				errs = append(errs, fmt.Errorf("Field: '%v', src [%v] & dst [%v] kind doesn't match",
-					f.Name,
-					sfv.Kind(),
-					dfv.Kind(),
-				))
-				continue
-			}
-
-			// check type of src and dst, if doesn't match move on
-			sfvt := dTypeOf(sfv)
-			dfvt := dTypeOf(dfv)
-			if (sfvt != dfvt) && !isInterface(dfv) {
-				errs = append(errs, fmt.Errorf("Field: '%v', src [%v] & dst [%v] type doesn't match",
-					f.Name,
-					sfvt,
-					dfvt,
-				))
+			// validate field - exists in dst, kind and type
+			err := valiadateCopyField(f, sfv, dfv)
+			if err != nil {
+				errs = append(errs, err)
 				continue
 			}
 
@@ -625,14 +561,7 @@ func mapVal(f reflect.Value, notraverse bool) reflect.Value {
 		for _, key := range f.MapKeys() {
 			skey := fmt.Sprintf("%v", key.Interface())
 			mv := f.MapIndex(key)
-
-			var nv reflect.Value
-			if isStruct(mv) {
-				nv = mapVal(mv, isNoTraverseType(mv))
-			} else {
-				nv = mapVal(mv, false)
-			}
-
+			nv := mapVal(mv, isNoTraverseType(mv))
 			nmv[skey] = nv.Interface()
 		}
 
@@ -657,12 +586,11 @@ func mapVal(f reflect.Value, notraverse bool) reflect.Value {
 					var dv reflect.Value
 					if isStruct(sv) {
 						dv = reflect.New(typeOfInterface).Elem()
-						dv.Set(mapVal(sv, isNoTraverseType(sv)))
 					} else {
 						dv = reflect.New(sv.Type()).Elem()
-						dv.Set(mapVal(sv, false))
 					}
 
+					dv.Set(mapVal(sv, isNoTraverseType(sv)))
 					nf.Index(i).Set(dv)
 				}
 			}
@@ -680,6 +608,82 @@ func mapVal(f reflect.Value, notraverse bool) reflect.Value {
 	}
 
 	return nf
+}
+
+func getFields(v reflect.Value) []reflect.StructField {
+	v = indirect(v)
+	t := v.Type()
+
+	var fs []reflect.StructField
+
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+
+		// Only exported fields of a struct can be accessed.
+		// So, non-exported fields will be ignored
+		if f.PkgPath == "" {
+
+			// `model="-"` attributes will be omitted
+			if tag := f.Tag.Get(TagName); tag == OmitField {
+				continue
+			}
+
+			fs = append(fs, f)
+		}
+	}
+
+	return fs
+}
+
+func isFieldZero(f reflect.Value) bool {
+	// zero value of the given field
+	// For example: reflect.Zero(reflect.TypeOf(42)) returns a Value with Kind Int and value 0
+	zero := reflect.Zero(f.Type()).Interface()
+
+	return reflect.DeepEqual(f.Interface(), zero)
+}
+
+func isNoTraverseType(v reflect.Value) bool {
+	if !isStruct(v) {
+		return false
+	}
+
+	t := dTypeOf(v)
+
+	if _, ok := NoTraverseTypeList[t]; ok {
+		return true
+	}
+
+	return false
+}
+
+func valiadateCopyField(f reflect.StructField, sfv, dfv reflect.Value) error {
+	// check dst field is exists, if not valid move on
+	if !dfv.IsValid() {
+		return fmt.Errorf("Field: '%v', dst is not valid", f.Name)
+	}
+
+	// check kind of src and dst, if doesn't match move on
+	if (sfv.Kind() != dfv.Kind()) && !isInterface(dfv) {
+		return fmt.Errorf("Field: '%v', src [%v] & dst [%v] kind doesn't match",
+			f.Name,
+			sfv.Kind(),
+			dfv.Kind(),
+		)
+	}
+
+	// check type of src and dst, if doesn't match move on
+	sfvt := dTypeOf(sfv)
+	dfvt := dTypeOf(dfv)
+	if (sfvt != dfvt) && !isInterface(dfv) {
+		return fmt.Errorf("Field: '%v', src [%v] & dst [%v] type doesn't match",
+			f.Name,
+			sfvt,
+			dfvt,
+		)
+	}
+
+	return nil
 }
 
 func zeroVal(f reflect.Value) reflect.Value {
