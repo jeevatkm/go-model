@@ -1505,6 +1505,50 @@ func TestMapSliceStructAndSliceStructPtr(t *testing.T) {
 	assertEqual(t, src.SliceStruct[0].Goal, value13.(string))
 }
 
+func TestCloneInputNil(t *testing.T) {
+	result := Clone(nil)
+
+	assertEqual(t, true, result == nil)
+}
+
+func TestCloneNotAStruct(t *testing.T) {
+	result := Clone("I'm not a struct")
+
+	assertEqual(t, true, result == nil)
+}
+
+func TestCloneStruct(t *testing.T) {
+	type SampleInfo struct {
+		Name string
+		Year int `model:"year"`
+		Goal string
+	}
+
+	src := SampleInfo{Name: "My name is go-model", Year: 2016}
+
+	result := Clone(src)
+
+	assertEqual(t, true, result != nil)
+	assertEqual(t, src.Name, result.(*SampleInfo).Name)
+	assertEqual(t, src.Year, result.(*SampleInfo).Year)
+}
+
+func TestCloneStructPtr(t *testing.T) {
+	type SampleInfo struct {
+		Name string
+		Year int `model:"year"`
+		Goal string
+	}
+
+	src := SampleInfo{Name: "My name is go-model ptr", Year: 2015}
+
+	result := Clone(&src)
+
+	assertEqual(t, true, result != nil)
+	assertEqual(t, src.Name, result.(*SampleInfo).Name)
+	assertEqual(t, src.Year, result.(*SampleInfo).Year)
+}
+
 //
 // helper test methods
 //

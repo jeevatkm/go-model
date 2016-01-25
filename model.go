@@ -37,7 +37,7 @@ const (
 
 var (
 	// Version # of go-model library
-	Version = "0.1"
+	Version = "0.2"
 
 	// NoTraverseTypeList keeps track of no-traverse type list at library level
 	NoTraverseTypeList map[reflect.Type]bool
@@ -186,7 +186,7 @@ func IsZero(s interface{}) bool {
 //
 // A "model" tag value with the option of "notraverse"; library will not traverse
 // inside the struct object. However, the field value will be evaluated whether
-// it's zero value or not then accordingly copied to the destination object.
+// it's zero value or not, and then copied to the destination object accordingly.
 // 		Example:
 //
 // 		// Field is not traversed but value is evaluated/processed
@@ -218,6 +218,66 @@ func Copy(dst, src interface{}) []error {
 	}
 
 	return nil
+}
+
+// Clone method creates a clone of given struct object. As you know go-model does, deep processing.
+// So all field values you get in the result.
+//
+// 		Example:
+// 		input := SampleStruct { /* input struct field values go here */ }
+//
+// 		clonedObj := model.Clone(input)
+//
+// 		fmt.Printf("\nCloned Object: %#v\n", clonedObj)
+//
+// Note:
+// [1] Two dimensional slice type is not supported yet.
+//
+// A "model" tag with the value of "-" is ignored by library for processing.
+// 		Example:
+//
+// 		// Field is ignored while processing
+// 		BookCount	int	`model:"-"`
+// 		BookCode	string	`model:"-"`
+//
+// A "model" tag value with the option of "omitempty"; library will not clone those values
+// into result struct object.
+// 		Example:
+//
+// 		// Field is not cloned into 'result' if it's empty/zero value
+// 		ArchiveInfo	BookArchive	`model:"archiveInfo,omitempty"`
+// 		Region		BookLocale	`model:",omitempty,notraverse"`
+//
+// A "model" tag value with the option of "notraverse"; library will not traverse
+// inside the struct object. However, the field value will be evaluated whether
+// it's zero value or not, and then cloned to the result accordingly.
+// 		Example:
+//
+// 		// Field is not traversed but value is evaluated/processed
+// 		ArchiveInfo	BookArchive	`model:"archiveInfo,notraverse"`
+// 		Region		BookLocale	`model:",notraverse"`
+//
+func Clone(s interface{}) interface{} {
+	if s == nil {
+		return nil
+	}
+
+	sv := indirect(valueOf(s))
+
+	if !isStruct(sv) {
+		return nil
+	}
+
+	// figure out target type
+	st := dTypeOf(sv)
+
+	// create a target type
+	dv := reflect.New(st)
+
+	// apply copy to target
+	doCopy(dv, sv)
+
+	return dv.Interface()
 }
 
 // Map method converts all the exported field values from the given struct into `map[string]interface{}`.
