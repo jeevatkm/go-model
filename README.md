@@ -68,7 +68,7 @@ fmt.Printf("\nDestination: %#v\n", product)
 ```
 
 #### Map Method
-I want to convert my struct into Map (`map[string]interface{}`). Not to worry, go-model does deep convert.
+I want to convert my struct into Map (`map[string]interface{}`). Sure, go-model does deep convert.
 ```go
 // tag your SearchResult fields with appropriate options like 
 // -, name, omitempty, notraverse to get desired result.
@@ -81,7 +81,7 @@ fmt.Printf("\nSearch Result Map: %#v\n", srchResMap)
 ```
 
 #### Clone Method
-I would like to clone my struct object. Not to worry, go-model does deep processing.
+I would like to clone my struct object. That's nice, you know go-model does deep processing.
 ```go
 input := Product { /* Product struct field values go here */ }
 
@@ -94,7 +94,7 @@ fmt.Printf("\nCloned Object: %#v\n", clonedObj)
 ```
 
 #### IsZero Method
-I want to check my struct object is empty or not. Not to worry, go-model does deep zero check.
+I want to check my struct object is empty or not. Of course, go-model does deep zero check.
 ```go
 // let's say you have just decoded/unmarshalled your request body to struct object.
 productInfo, _ := myapp.ParseJSON(request.Body)
