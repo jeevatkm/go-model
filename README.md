@@ -2,10 +2,12 @@
 
 Robust & Easy to use model mapper and model utility methods for Go. Typical methods increase productivity and make Go developement more fun :smile:
 
+**v0.1 released and tagged on Jan 22, 2016**
+
 go-model tested with Go `v1.2` and above.
 
 ## Features
-go-model provides handy methods (`Copy`, `Map`, `IsZero`, etc.) to process struct with below highlighted features. It's born from typical need while developing Go application or utility. I hope it's helpful!
+go-model provides handy methods (`Copy`, `Map`, `Clone`, `IsZero`, etc.) to process struct with below highlighted features. It's born from typical need while developing Go application or utility. I hope it's helpful!
 * Embedded/Anonymous struct
 * Multi-level nested struct/map/slice
 * Pointer and non-pointer within struct/map/slice
@@ -42,6 +44,7 @@ import (
 ### Methods
 * Copy - [usage](#copy-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#Copy)
 * Map - [usage](#map-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#Map)
+* Clone - [usage](#clone-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#Clone)
 * IsZero - [usage](#iszero-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#IsZero)
 * AddNoTraverseType - [usage](#addnotraversetype--removenotraversetype-methods), [godoc](https://godoc.org/github.com/jeevatkm/go-model#AddNoTraverseType)
 * RemoveNoTraverseType - [usage](#addnotraversetype--removenotraversetype-methods), [godoc](https://godoc.org/github.com/jeevatkm/go-model#RemoveNoTraverseType)
@@ -75,6 +78,19 @@ srchResMap, err := model.Map(sr)
 fmt.Println("Error:", err)
 
 fmt.Printf("\nSearch Result Map: %#v\n", srchResMap)
+```
+
+#### Clone Method
+I would like to clone my struct object. Not to worry, go-model does deep processing.
+```go
+input := Product { /* Product struct field values go here */ }
+
+// have your struct fields tagged appropriately. Options like 
+// -, name, omitempty, notraverse to get desired result.
+clonedObj := model.Clone(input)
+
+// let's see the result
+fmt.Printf("\nCloned Object: %#v\n", clonedObj)
 ```
 
 #### IsZero Method
