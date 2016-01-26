@@ -2,7 +2,7 @@
 
 Robust & Easy to use model mapper and model utility methods for Go. Typical methods increase productivity and make Go developement more fun :smile:
 
-**v0.1 released and tagged on Jan 22, 2016**
+**v0.2 released and tagged on Jan 26, 2016**
 
 go-model tested with Go `v1.2` and above.
 
