@@ -148,8 +148,8 @@ func IsZero(s interface{}) bool {
 	return true
 }
 
-// HasZero method returns true if any of the exported fields in a given struct
-// is zero value. If it's not struct then method returns false.
+// HasZero method returns true if any one of the exported fields in a given
+// struct is zero value. If it's not struct then method returns false.
 //
 // A "model" tag with the value of "-" is ignored by library for processing.
 // 		Example:
@@ -458,55 +458,58 @@ func doCopy(dv, sv reflect.Value) []error {
 			isVal = !isFieldZero(sfv)
 		}
 
+		// get dst field by name
 		dfv := dv.FieldByName(f.Name)
 
-		if isVal {
-
-			// validate field - exists in dst, kind and type
-			err := valiadateCopyField(f, sfv, dfv)
-			if err != nil {
-				errs = append(errs, err)
-				continue
-			}
-
-			// check dst field settable or not
-			if dfv.CanSet() {
-
-				// handle embedded or nested struct
-				if isStruct(sfv) {
-
-					if noTraverse {
-						// This is struct kind and it's present in NoTraverseTypeList or
-						// has 'notraverse' tag option. So go-model is not gonna traverse inside.
-						// however will take care of field value
-						dfv.Set(copyVal(sfv, true))
-					} else {
-						ndv := reflect.New(indirect(sfv).Type())
-						innerErrs := doCopy(ndv, sfv)
-
-						// add errors to main stream
-						errs = append(errs, innerErrs...)
-
-						// handle based on ptr/non-ptr value
-						if isPtr(sfv) {
-							dfv.Set(ndv)
-						} else {
-							dfv.Set(indirect(ndv))
-						}
-					}
-
-					continue
-				}
-
-				dfv.Set(copyVal(sfv, false))
-			}
-		} else {
-
+		// if value is not exists
+		if !isVal {
 			// field value is zero and 'omitempty' option present
-			// then not copying into destination struct
+			// then don't copy into destination struct
 			if !tag.isOmitEmpty() {
 				dfv.Set(zeroOf(dfv))
 			}
+
+			continue
+		}
+
+		// validate field - exists in dst, kind and type
+		err := valiadateCopyField(f, sfv, dfv)
+		if err != nil {
+			errs = append(errs, err)
+
+			continue
+		}
+
+		// check dst field settable or not
+		if dfv.CanSet() {
+
+			// handle embedded or nested struct
+			if isStruct(sfv) {
+
+				if noTraverse {
+					// This is struct kind and it's present in NoTraverseTypeList or
+					// has 'notraverse' tag option. So go-model is not gonna traverse inside.
+					// however will take care of field value
+					dfv.Set(copyVal(sfv, true))
+				} else {
+					ndv := reflect.New(indirect(sfv).Type())
+					innerErrs := doCopy(ndv, sfv)
+
+					// add errors to main stream
+					errs = append(errs, innerErrs...)
+
+					// handle based on ptr/non-ptr value
+					if isPtr(sfv) {
+						dfv.Set(ndv)
+					} else {
+						dfv.Set(indirect(ndv))
+					}
+				}
+
+				continue
+			}
+
+			dfv.Set(copyVal(sfv, false))
 		}
 	}
 
