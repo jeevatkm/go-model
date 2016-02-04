@@ -858,6 +858,80 @@ func TestNonZeroCheck(t *testing.T) {
 	}
 }
 
+func TestNonHasZeroCheck(t *testing.T) {
+	type SampleSubInfo struct {
+		Name string
+		Year int
+	}
+
+	type SampleStruct struct {
+		Level1Struct           SampleSubInfo
+		Level1StructPtr        *SampleSubInfo
+		Level1StructNoTraverse *SampleSubInfo `model:",notraverse"`
+		CreatedTime            time.Time
+		SampleSubInfo
+	}
+
+	src1 := SampleStruct{
+		SampleSubInfo:          SampleSubInfo{Name: "This embeded struct", Year: 2016},
+		Level1Struct:           SampleSubInfo{Name: "This level 1 struct", Year: 2015},
+		Level1StructPtr:        &SampleSubInfo{Name: "This level 1 ptr struct", Year: 2014},
+		Level1StructNoTraverse: &SampleSubInfo{Name: "This nested no traverse struct", Year: 2013},
+		CreatedTime:            time.Now(),
+	}
+
+	if HasZero(src1) {
+		t.Error("SampleStruct supposed to be non-zero")
+	}
+
+	src2 := SampleStruct{
+		SampleSubInfo:          SampleSubInfo{Name: "This embeded struct", Year: 2016},
+		Level1Struct:           SampleSubInfo{Name: "This level 1 struct", Year: 2015},
+		Level1StructPtr:        &SampleSubInfo{Name: "This level 1 ptr struct", Year: 2014},
+		Level1StructNoTraverse: &SampleSubInfo{Name: "This nested no traverse struct", Year: 2013},
+	}
+
+	if !HasZero(src2) {
+		t.Error("SampleStruct supposed to have one-zero i.e. CreatedTime field")
+	}
+
+	src3 := SampleStruct{
+		Level1Struct:           SampleSubInfo{Name: "This level 1 struct", Year: 2015},
+		Level1StructPtr:        &SampleSubInfo{Name: "This level 1 ptr struct", Year: 2014},
+		Level1StructNoTraverse: &SampleSubInfo{Name: "This nested no traverse struct", Year: 2013},
+		SampleSubInfo:          SampleSubInfo{Name: "This embeded struct"},
+	}
+
+	if !HasZero(src3) {
+		t.Error("SampleStruct supposed to have one-zero i.e. SampleSubInfo -> Year field")
+	}
+}
+
+func TestHasZeroForField(t *testing.T) {
+	type SampleSubInfo struct {
+		Name string
+		Year int
+	}
+
+	if !HasZero(&SampleSubInfo{Name: "only I have populated"}) {
+		t.Error("Supposed to have one-zero filed i.e. Year")
+	}
+
+	type SampleStruct struct {
+		Level1Struct           SampleSubInfo
+		Level1StructPtr        *SampleSubInfo
+		Level1StructNoTraverse *SampleSubInfo `model:",notraverse"`
+		CreatedTime            time.Time
+		SampleSubInfo
+	}
+
+	src1 := SampleStruct{}
+	if !HasZero(src1) {
+		t.Error("Suppose to be empty")
+	}
+
+}
+
 func TestIsStructMethod(t *testing.T) {
 	src := map[string]interface{}{
 		"struct": &SampleStruct{Time: time.Now()},
@@ -883,6 +957,24 @@ func TestIsZeroNotAStructInput(t *testing.T) {
 	str := "This is not a struct"
 	result4 := IsZero(&str)
 	assertEqual(t, false, result4)
+}
+
+func TestHasZeroNotAStructInput(t *testing.T) {
+	result1 := HasZero(10001)
+	assertEqual(t, false, result1)
+
+	result2 := HasZero(map[string]int{"1": 101, "2": 102, "3": 103})
+	assertEqual(t, false, result2)
+
+	floatVar := float64(1.7367643)
+	result3 := HasZero(&floatVar)
+	assertEqual(t, false, result3)
+
+	str := "This is not a struct"
+	result4 := HasZero(&str)
+	assertEqual(t, false, result4)
+
+	assertEqual(t, true, HasZero(nil))
 }
 
 //

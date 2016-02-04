@@ -1,6 +1,6 @@
 # go-model [![Build Status](https://travis-ci.org/jeevatkm/go-model.svg?branch=master)](https://travis-ci.org/jeevatkm/go-model) [![GoCover](http://gocover.io/_badge/github.com/jeevatkm/go-model)](http://gocover.io/github.com/jeevatkm/go-model) [![GoDoc](https://godoc.org/github.com/jeevatkm/go-model?status.svg)](https://godoc.org/github.com/jeevatkm/go-model) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Robust & Easy to use model mapper and model utility methods for Go. Typical methods increase productivity and make Go developement more fun :smile:
+Robust & Easy to use model mapper and utility methods for Go. Typical methods increase productivity and make Go developement more fun :smile:
 
 **v0.2 released and tagged on Jan 26, 2016**
 
@@ -57,7 +57,7 @@ tempProduct, _ := myapp.ParseJSON(request.Body)
 
 product := Product{}
 
-// tag your Product fields with appropriate options like 
+// tag your Product fields with appropriate options like
 // -, omitempty, notraverse to get desired result.
 // Not to worry, go-model does deep copy :)
 errs := model.Copy(&product, tempProduct)
@@ -70,7 +70,7 @@ fmt.Printf("\nDestination: %#v\n", product)
 #### Map Method
 I want to convert my struct into Map (`map[string]interface{}`). Sure, go-model does deep convert.
 ```go
-// tag your SearchResult fields with appropriate options like 
+// tag your SearchResult fields with appropriate options like
 // -, name, omitempty, notraverse to get desired result.
 sr, _ := myapp.GetSearchResult( /* params here */ )
 
@@ -85,7 +85,7 @@ I would like to clone my struct object. That's nice, you know go-model does deep
 ```go
 input := Product { /* Product struct field values go here */ }
 
-// have your struct fields tagged appropriately. Options like 
+// have your struct fields tagged appropriately. Options like
 // -, name, omitempty, notraverse to get desired result.
 clonedObj := model.Clone(input)
 
@@ -102,13 +102,13 @@ productInfo, _ := myapp.ParseJSON(request.Body)
 // wanna check productInfo is empty or not
 isEmpty := model.IsZero(productInfo)
 
-// tag your ProductInfo fields with appropriate options like 
+// tag your ProductInfo fields with appropriate options like
 // -, omitempty, notraverse to get desired result.
 fmt.Println("Hey, I have zero values:", isEmpty)
 ```
 
 #### AddNoTraverseType & RemoveNoTraverseType Methods
-There are scenarios, where you want the object values but not to traverse/look inside the struct object. Use `notraverse` option in the model tag for those fields or Add it `NoTraverseTypeList`. Customize it as per your need. 
+There are scenarios, where you want the object values but not to traverse/look inside the struct object. Use `notraverse` option in the model tag for those fields or Add it `NoTraverseTypeList`. Customize it as per your need.
 
 Default `NoTraverseTypeList` has these types `time.Time{}`, `&time.Time{}`, `os.File{}`, `&os.File{}`, `http.Request{}`, `&http.Request{}`, `http.Response{}`, `&http.Response{}`.
 ```go
@@ -125,7 +125,7 @@ model.RemoveNoTraverseType(time.Location{}, &time.Location{})
 go-model releases versions according to [Semantic Versioning](http://semver.org)
 
 `gopkg.in/jeevatkm/go-model.vX` points to appropriate tag versions; `X` denotes version number and it's a stable release. It's recommended to use version, for eg. `gopkg.in/jeevatkm/go-model.v0`. Development takes place at the master branch. Although the code in master should always compile and test successfully, it might break API's. We aim to maintain backwards compatibility, but API's and behaviour might be changed to fix a bug.
- 
+
 ## Contributing
 Welcome! If you find any improvement or issue you want to fix, feel free to send a pull request. I like pull requests that include test cases for fix/enhancement. I have done my best to bring pretty good code coverage. Feel free to write tests.
 

@@ -37,7 +37,7 @@ const (
 
 var (
 	// Version # of go-model library
-	Version = "0.2"
+	Version = "0.3"
 
 	// NoTraverseTypeList keeps track of no-traverse type list at library level
 	NoTraverseTypeList map[reflect.Type]bool
@@ -146,6 +146,71 @@ func IsZero(s interface{}) bool {
 	}
 
 	return true
+}
+
+// HasZero method returns true if any of the exported fields in a given struct
+// is zero value. If it's not struct then method returns false.
+//
+// A "model" tag with the value of "-" is ignored by library for processing.
+// 		Example:
+//
+// 		// Field is ignored by go-model processing
+// 		BookCount	int	`model:"-"`
+// 		BookCode	string	`model:"-"`
+//
+// A "model" tag value with the option of "notraverse"; library will not traverse
+// inside the struct object. However, the field value will be evaluated whether
+// it's zero value or not.
+// 		Example:
+//
+// 		// Field is not traversed but value is evaluated/processed
+// 		ArchiveInfo	BookArchive	`model:"archiveInfo,notraverse"`
+// 		Region		BookLocale	`model:",notraverse"`
+//
+func HasZero(s interface{}) bool {
+	if s == nil {
+		return true
+	}
+
+	sv := indirect(valueOf(s))
+
+	if !isStruct(sv) {
+		return false
+	}
+
+	fields := getFields(sv)
+
+	for _, f := range fields {
+		fv := sv.FieldByName(f.Name)
+
+		// embedded or nested struct
+		if isStruct(fv) {
+			tag := newTag(f.Tag.Get(TagName))
+
+			// check type is in NoTraverseTypeList or has 'notraverse' tag option
+			if isNoTraverseType(fv) || tag.isNoTraverse() {
+
+				// not traversing inside, but evaluating a value
+				if isFieldZero(fv) {
+					return true
+				}
+
+				continue
+			}
+
+			if HasZero(fv.Interface()) {
+				return true
+			}
+
+			continue
+		}
+
+		if isFieldZero(fv) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Copy method copies all the exported field values from source struct into destination struct.
@@ -440,7 +505,7 @@ func doCopy(dv, sv reflect.Value) []error {
 			// field value is zero and 'omitempty' option present
 			// then not copying into destination struct
 			if !tag.isOmitEmpty() {
-				dfv.Set(zeroVal(dfv))
+				dfv.Set(zeroOf(dfv))
 			}
 		}
 	}
@@ -508,7 +573,7 @@ func doMap(sv reflect.Value) map[string]interface{} {
 			// field value is zero and 'omitempty' option present
 			// then not including into Map
 			if !tag.isOmitEmpty() {
-				m[keyName] = zeroVal(fv).Interface()
+				m[keyName] = zeroOf(fv).Interface()
 			}
 		}
 	}
@@ -746,7 +811,7 @@ func valiadateCopyField(f reflect.StructField, sfv, dfv reflect.Value) error {
 	return nil
 }
 
-func zeroVal(f reflect.Value) reflect.Value {
+func zeroOf(f reflect.Value) reflect.Value {
 
 	// get zero value for type
 	ftz := reflect.Zero(f.Type())
