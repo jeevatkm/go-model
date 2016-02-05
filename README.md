@@ -1,4 +1,5 @@
-# go-model [![Build Status](https://travis-ci.org/jeevatkm/go-model.svg?branch=master)](https://travis-ci.org/jeevatkm/go-model) [![GoCover](http://gocover.io/_badge/github.com/jeevatkm/go-model)](http://gocover.io/github.com/jeevatkm/go-model) [![GoDoc](https://godoc.org/github.com/jeevatkm/go-model?status.svg)](https://godoc.org/github.com/jeevatkm/go-model) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+# go-model [![Build Status](https://travis-ci.org/jeevatkm/go-model.svg?branch=master)](https://travis-ci.org/jeevatkm/go-model) [![GoCover](https://gocover.io/_badge/github.com/jeevatkm/go-model)](https://gocover.io/github.com/jeevatkm/go-model)
+[![GoReport](https://goreportcard.com/badge/jeevatkm/go-model)](https://goreportcard.com/report/jeevatkm/go-model) [![GoDoc](https://godoc.org/github.com/jeevatkm/go-model?status.svg)](https://godoc.org/github.com/jeevatkm/go-model) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Robust & Easy to use model mapper and utility methods for Go. Typical methods increase productivity and make Go developement more fun :smile:
 
@@ -46,6 +47,8 @@ import (
 * Map - [usage](#map-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#Map)
 * Clone - [usage](#clone-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#Clone)
 * IsZero - [usage](#iszero-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#IsZero)
+* HasZero - [usage](#haszero-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#HasZero)
+* IsZeroInFields - [usage](#iszeroinfields-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#IsZeroInFields)
 * AddNoTraverseType - [usage](#addnotraversetype--removenotraversetype-methods), [godoc](https://godoc.org/github.com/jeevatkm/go-model#AddNoTraverseType)
 * RemoveNoTraverseType - [usage](#addnotraversetype--removenotraversetype-methods), [godoc](https://godoc.org/github.com/jeevatkm/go-model#RemoveNoTraverseType)
 
@@ -104,7 +107,34 @@ isEmpty := model.IsZero(productInfo)
 
 // tag your ProductInfo fields with appropriate options like
 // -, omitempty, notraverse to get desired result.
+fmt.Println("Hey, I have all fields zero value:", isEmpty)
+```
+
+#### HasZero Method
+I want to check my struct object has any zero/empty value. Of course, go-model does deep zero check.
+```go
+// let's say you have just decoded/unmarshalled your request body to struct object.
+productInfo, _ := myapp.ParseJSON(request.Body)
+
+// wanna check productInfo is empty or not
+isEmpty := model.HasZero(productInfo)
+
+// tag your ProductInfo fields with appropriate options like
+// -, omitempty, notraverse to get desired result.
 fmt.Println("Hey, I have zero values:", isEmpty)
+```
+
+#### IsZeroInFields Method
+Is it possible to check to particular fields has zero/empty values. Of-course you can.
+```go
+// let's say you have just decoded/unmarshalled your request body to struct object.
+product, _ := myapp.ParseJSON(request.Body)
+
+// check particular fields has zero value or not
+fieldName, isEmpty := model.IsZeroInFields(product, "SKU", "Title", "InternalIdentifier")
+
+fmt.Println("Empty Field Name:", fieldName)
+fmt.Println("Yes, I have zero value:", isEmpty)
 ```
 
 #### AddNoTraverseType & RemoveNoTraverseType Methods
