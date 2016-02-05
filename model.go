@@ -2,7 +2,7 @@
 // resty source code and usage is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-// Package model provides robust and easy-to-use model mapper and model utility methods for Go.
+// Package model provides robust and easy-to-use model mapper and utility methods for Go.
 // These typical methods increase productivity and make Go development more fun :)
 package model
 
@@ -83,8 +83,8 @@ func RemoveNoTraverseType(i ...interface{}) {
 	}
 }
 
-// IsZero method returns true if all the exported fields in a given struct
-// are zero value. If it's not struct then method returns false.
+// IsZero method returns `true` if all the exported fields in a given `struct`
+// are zero value otherwise `false`. If input is not a struct, method returns `false`.
 //
 // A "model" tag with the value of "-" is ignored by library for processing.
 // 		Example:
@@ -148,8 +148,91 @@ func IsZero(s interface{}) bool {
 	return true
 }
 
-// HasZero method returns true if any one of the exported fields in a given
-// struct is zero value. If it's not struct then method returns false.
+// IsZeroInFields method verifies the value for the given list of field names against
+// given struct. Method returns `Field Name` and `true` for the zero value field.
+// Otherwise method returns empty `string` and `false`.
+//
+// A "model" tag with the value of "-" is ignored by library for processing.
+// 		Example:
+//
+// 		// Field is ignored by go-model processing
+// 		BookCount	int	`model:"-"`
+// 		BookCode	string	`model:"-"`
+//
+// A "model" tag value with the option of "notraverse"; library will not traverse
+// inside the struct object. However, the field value will be evaluated whether
+// it's zero value or not.
+// 		Example:
+//
+// 		// Field is not traversed but value is evaluated/processed
+// 		ArchiveInfo	BookArchive	`model:"archiveInfo,notraverse"`
+// 		Region		BookLocale	`model:",notraverse"`
+//
+func IsZeroInFields(s interface{}, names ...string) (string, bool) {
+	if s == nil || len(names) == 0 {
+		return "", true
+	}
+
+	sv := indirect(valueOf(s))
+
+	if !isStruct(sv) {
+		return "", false
+	}
+
+	//nameList := strings.Join(names, ",")
+	fields := getFields(sv)
+
+	for _, f := range fields {
+
+		// check field name
+		fmt.Println("Coming:", f.Name)
+		if !contains(names, f.Name) {
+			continue
+		}
+		fmt.Println("Passed:", f.Name)
+
+		fv := sv.FieldByName(f.Name)
+
+		fmt.Println("IsStruct:", isStruct(fv), fv.Kind())
+		// embedded or nested struct
+		if isStruct(fv) {
+			tag := newTag(f.Tag.Get(TagName))
+
+			// check type is in NoTraverseTypeList or has 'notraverse' tag option
+			if isNoTraverseType(fv) || tag.isNoTraverse() {
+
+				fmt.Println("Field:", f.Name, isFieldZero(fv))
+				// not traversing inside, but evaluating a value
+				if isFieldZero(fv) {
+					return f.Name, true
+				}
+
+				continue
+			}
+
+			if isFieldZero(fv) {
+				return f.Name, true
+			}
+
+			if fieldName, zero := IsZeroInFields(fv.Interface(), names...); zero {
+				return fieldName, true
+			}
+
+			continue
+		}
+		fmt.Println("Out Field:", f.Name, isFieldZero(fv))
+
+		if isFieldZero(fv) {
+			return f.Name, true
+		}
+	}
+
+	return "", false
+}
+
+// HasZero method returns `true` if any one of the exported fields in a given
+// `struct` is zero value otherwise `false`. If input is not a struct, method
+// returns `false`.
 //
 // A "model" tag with the value of "-" is ignored by library for processing.
 // 		Example:
@@ -213,7 +296,7 @@ func HasZero(s interface{}) bool {
 	return false
 }
 
-// Copy method copies all the exported field values from source struct into destination struct.
+// Copy method copies all the exported field values from source `struct` into destination `struct`.
 // The "Name", "Type" and "Kind" is should match to qualify a copy. One exception though;
 // if the destination field type is "interface{}" then "Type" and "Kind" doesn't matter,
 // source value gets copied to that destination field.
@@ -285,7 +368,7 @@ func Copy(dst, src interface{}) []error {
 	return nil
 }
 
-// Clone method creates a clone of given struct object. As you know go-model does, deep processing.
+// Clone method creates a clone of given `struct` object. As you know go-model does, deep processing.
 // So all field values you get in the result.
 //
 // 		Example:
@@ -334,7 +417,7 @@ func Clone(s interface{}) interface{} {
 	}
 
 	// figure out target type
-	st := dTypeOf(sv)
+	st := deepTypeOf(sv)
 
 	// create a target type
 	dv := reflect.New(st)
@@ -345,9 +428,9 @@ func Clone(s interface{}) interface{} {
 	return dv.Interface()
 }
 
-// Map method converts all the exported field values from the given struct into `map[string]interface{}`.
-// In which the keys of the map are the field names and the values of the map are the associated
-// values of the field.
+// Map method converts all the exported field values from the given `struct`
+// into `map[string]interface{}`. In which the keys of the map are the field names
+// and the values of the map are the associated values of the field.
 //
 // 		Example:
 //
@@ -463,8 +546,9 @@ func doCopy(dv, sv reflect.Value) []error {
 
 		// if value is not exists
 		if !isVal {
-			// field value is zero and 'omitempty' option present
+			// field value is zero and check 'omitempty' option present
 			// then don't copy into destination struct
+			// otherwise copy to dst
 			if !tag.isOmitEmpty() {
 				dfv.Set(zeroOf(dfv))
 			}
@@ -542,43 +626,42 @@ func doMap(sv reflect.Value) map[string]interface{} {
 			isVal = !isFieldZero(fv)
 		}
 
-		// field value is not zero
-		if isVal {
-
-			// handle embedded or nested struct
-			if isStruct(fv) {
-
-				if noTraverse {
-					// This is struct kind and it's present in NoTraverseTypeList or
-					// has 'notraverse' tag option. So go-model is not gonna traverse inside.
-					// however will take care of field value
-					m[keyName] = mapVal(fv, true).Interface()
-				} else {
-
-					// embedded struct values gets mapped at embedded level
-					// as represented by Go instead of object
-					fmv := doMap(fv)
-					if f.Anonymous {
-						for k, v := range fmv {
-							m[k] = v
-						}
-					} else {
-						m[keyName] = fmv
-					}
-				}
-
-				continue
-			}
-
-			m[keyName] = mapVal(fv, false).Interface()
-		} else {
-
-			// field value is zero and 'omitempty' option present
-			// then not including into Map
+		if !isVal {
+			// field value is zero and has 'omitempty' option present
+			// then not include in the Map
 			if !tag.isOmitEmpty() {
 				m[keyName] = zeroOf(fv).Interface()
 			}
+
+			continue
 		}
+
+		// handle embedded or nested struct
+		if isStruct(fv) {
+
+			if noTraverse {
+				// This is struct kind and it's present in NoTraverseTypeList or
+				// has 'notraverse' tag option. So go-model is not gonna traverse inside.
+				// however will take care of field value
+				m[keyName] = mapVal(fv, true).Interface()
+			} else {
+
+				// embedded struct values gets mapped at embedded level
+				// as represented by Go instead of object
+				fmv := doMap(fv)
+				if f.Anonymous {
+					for k, v := range fmv {
+						m[k] = v
+					}
+				} else {
+					m[keyName] = fmv
+				}
+			}
+
+			continue
+		}
+
+		m[keyName] = mapVal(fv, false).Interface()
 	}
 
 	return m
@@ -622,8 +705,7 @@ func copyVal(f reflect.Value, notraverse bool) reflect.Value {
 			ov := f.MapIndex(key)
 
 			cv := reflect.New(ov.Type()).Elem()
-			traverse := isNoTraverseType(ov)
-			cv.Set(copyVal(ov, traverse))
+			cv.Set(copyVal(ov, isNoTraverseType(ov)))
 
 			nf.SetMapIndex(key, cv)
 		}
@@ -637,8 +719,7 @@ func copyVal(f reflect.Value, notraverse bool) reflect.Value {
 				ov := f.Index(i)
 
 				cv := reflect.New(ov.Type()).Elem()
-				traverse := isNoTraverseType(ov)
-				cv.Set(copyVal(ov, traverse))
+				cv.Set(copyVal(ov, isNoTraverseType(ov)))
 
 				nf.Index(i).Set(cv)
 			}
@@ -776,7 +857,7 @@ func isNoTraverseType(v reflect.Value) bool {
 		return false
 	}
 
-	t := dTypeOf(v)
+	t := deepTypeOf(v)
 
 	if _, ok := NoTraverseTypeList[t]; ok {
 		return true
@@ -801,8 +882,8 @@ func valiadateCopyField(f reflect.StructField, sfv, dfv reflect.Value) error {
 	}
 
 	// check type of src and dst, if doesn't match move on
-	sfvt := dTypeOf(sfv)
-	dfvt := dTypeOf(dfv)
+	sfvt := deepTypeOf(sfv)
+	dfvt := deepTypeOf(dfv)
 	if (sfvt != dfvt) && !isInterface(dfv) {
 		return fmt.Errorf("Field: '%v', src [%v] & dst [%v] type doesn't match",
 			f.Name,
@@ -812,6 +893,16 @@ func valiadateCopyField(f reflect.StructField, sfv, dfv reflect.Value) error {
 	}
 
 	return nil
+}
+
+func contains(a []string, s string) bool {
+	for _, v := range a {
+		if v == s {
+			return true
+		}
+	}
+
+	return false
 }
 
 func zeroOf(f reflect.Value) reflect.Value {
@@ -827,7 +918,7 @@ func zeroOf(f reflect.Value) reflect.Value {
 	return indirect(valueOf(ftz.Interface()))
 }
 
-func dTypeOf(v reflect.Value) reflect.Type {
+func deepTypeOf(v reflect.Value) reflect.Type {
 	if isInterface(v) {
 
 		// check zero or not
@@ -857,14 +948,16 @@ func isStruct(v reflect.Value) bool {
 		v = valueOf(v.Interface())
 	}
 
-	v = indirect(v)
+	pv := indirect(v)
 
 	// struct is not yet initialized
-	if v.Kind() == reflect.Invalid {
+	if pv.Kind() == reflect.Invalid {
+		// vt := deepTypeOf(v)
+		// return vt.Elem().Kind() == reflect.Struct
 		return false
 	}
 
-	return v.Kind() == reflect.Struct
+	return pv.Kind() == reflect.Struct
 }
 
 func isInterface(v reflect.Value) bool {
