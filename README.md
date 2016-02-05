@@ -1,5 +1,4 @@
-# go-model [![Build Status](https://travis-ci.org/jeevatkm/go-model.svg?branch=master)](https://travis-ci.org/jeevatkm/go-model) [![GoCover](https://gocover.io/_badge/github.com/jeevatkm/go-model)](https://gocover.io/github.com/jeevatkm/go-model)
-[![GoReport](https://goreportcard.com/badge/jeevatkm/go-model)](https://goreportcard.com/report/jeevatkm/go-model) [![GoDoc](https://godoc.org/github.com/jeevatkm/go-model?status.svg)](https://godoc.org/github.com/jeevatkm/go-model) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+# go-model [![Build Status](https://travis-ci.org/jeevatkm/go-model.svg?branch=master)](https://travis-ci.org/jeevatkm/go-model) [![GoCover](https://gocover.io/_badge/github.com/jeevatkm/go-model)](https://gocover.io/github.com/jeevatkm/go-model) [![GoReport](https://goreportcard.com/badge/jeevatkm/go-model)](https://goreportcard.com/report/jeevatkm/go-model) [![GoDoc](https://godoc.org/github.com/jeevatkm/go-model?status.svg)](https://godoc.org/github.com/jeevatkm/go-model) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Robust & Easy to use model mapper and utility methods for Go. Typical methods increase productivity and make Go developement more fun :smile:
 
