@@ -152,21 +152,16 @@ func IsZero(s interface{}) bool {
 // given struct. Method returns `Field Name` and `true` for the zero value field.
 // Otherwise method returns empty `string` and `false`.
 //
+// Note:
+// [1] This method doesn't traverse nested and embedded `struct`, instead it just evaluates that `struct`.
+// [2] If given field is not exists in the struct, method moves on to next field
+//
 // A "model" tag with the value of "-" is ignored by library for processing.
 // 		Example:
 //
 // 		// Field is ignored by go-model processing
 // 		BookCount	int	`model:"-"`
 // 		BookCode	string	`model:"-"`
-//
-// A "model" tag value with the option of "notraverse"; library will not traverse
-// inside the struct object. However, the field value will be evaluated whether
-// it's zero value or not.
-// 		Example:
-//
-// 		// Field is not traversed but value is evaluated/processed
-// 		ArchiveInfo	BookArchive	`model:"archiveInfo,notraverse"`
-// 		Region		BookLocale	`model:",notraverse"`
 //
 func IsZeroInFields(s interface{}, names ...string) (string, bool) {
 	if s == nil || len(names) == 0 {
@@ -179,51 +174,16 @@ func IsZeroInFields(s interface{}, names ...string) (string, bool) {
 		return "", false
 	}
 
-	//nameList := strings.Join(names, ",")
-	fields := getFields(sv)
+	for _, name := range names {
+		fv := sv.FieldByName(name)
 
-	for _, f := range fields {
-
-		// check field name
-		fmt.Println("Coming:", f.Name)
-		if !contains(names, f.Name) {
+		// if given field is not exists then continue
+		if !fv.IsValid() {
 			continue
 		}
-		fmt.Println("Passed:", f.Name)
-
-		fv := sv.FieldByName(f.Name)
-
-		fmt.Println("IsStruct:", isStruct(fv), fv.Kind())
-		// embedded or nested struct
-		if isStruct(fv) {
-			tag := newTag(f.Tag.Get(TagName))
-
-			// check type is in NoTraverseTypeList or has 'notraverse' tag option
-			if isNoTraverseType(fv) || tag.isNoTraverse() {
-
-				fmt.Println("Field:", f.Name, isFieldZero(fv))
-				// not traversing inside, but evaluating a value
-				if isFieldZero(fv) {
-					return f.Name, true
-				}
-
-				continue
-			}
-
-			if isFieldZero(fv) {
-				return f.Name, true
-			}
-
-			if fieldName, zero := IsZeroInFields(fv.Interface(), names...); zero {
-				return fieldName, true
-			}
-
-			continue
-		}
-		fmt.Println("Out Field:", f.Name, isFieldZero(fv))
 
 		if isFieldZero(fv) {
-			return f.Name, true
+			return name, true
 		}
 	}
 
@@ -893,16 +853,6 @@ func valiadateCopyField(f reflect.StructField, sfv, dfv reflect.Value) error {
 	}
 
 	return nil
-}
-
-func contains(a []string, s string) bool {
-	for _, v := range a {
-		if v == s {
-			return true
-		}
-	}
-
-	return false
 }
 
 func zeroOf(f reflect.Value) reflect.Value {

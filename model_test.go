@@ -1706,30 +1706,43 @@ func TestIsZeroInFields(t *testing.T) {
 		Level1StructNoTraverse: &SampleInfo{Name: "This nested no traverse struct"},
 		CreatedTime:            time.Now(),
 	}
-	name3, zero3 := IsZeroInFields(src3, "Year")
+	name3, zero3 := IsZeroInFields(src3, "Year1")
 	assertEqual(t, false, zero3)
-	assertEqual(t, "", name3) // Special case no traversing inside
+	assertEqual(t, "", name3)
+}
 
-	src4 := SampleStruct{
-		Name:                   "I'm Name",
-		Year:                   2016,
-		Goal:                   "To test IsZeroInFields",
-		Level1StructPtr:        &SampleInfo{Name: "This level 1 ptr struct"},
-		Level1StructNoTraverse: &SampleInfo{Name: "This nested no traverse struct"},
-		CreatedTime:            time.Now(),
+func TestIsZeroInFieldsEmbedded(t *testing.T) {
+	type SampleInfo struct {
+		Name   string
+		Year   int
+		Level2 float32
 	}
-	name4, zero4 := IsZeroInFields(src4, "Level1Struct")
-	assertEqual(t, true, zero4)
-	assertEqual(t, "Level1Struct", name4)
 
-	src5 := SampleStruct{
-		Name: "I'm Name",
-		Year: 2016,
-		Goal: "To test IsZeroInFields",
+	type SampleStruct struct {
+		Level1Struct           SampleInfo
+		Level1StructPtr        *SampleInfo
+		Level1StructNoTraverse SampleInfo `model:",notraverse"`
+		CreatedTime            time.Time
+		SampleInfo
 	}
-	name5, zero5 := IsZeroInFields(src5, "Level1StructNoTraverse")
-	assertEqual(t, true, zero5)
-	assertEqual(t, "Level1StructNoTraverse", name5)
+
+	src1 := SampleStruct{
+		Level1Struct:    SampleInfo{Name: "This level 1 struct", Year: 2015},
+		Level1StructPtr: &SampleInfo{Name: "This level 1 ptr struct", Year: 2014},
+		CreatedTime:     time.Now(),
+		SampleInfo: SampleInfo{
+			Name: "I'm Name",
+			Year: 2016,
+		},
+	}
+
+	name1, zero1 := IsZeroInFields(src1, "SampleInfo")
+	assertEqual(t, false, zero1)
+	assertEqual(t, "", name1)
+
+	name2, zero2 := IsZeroInFields(SampleStruct{}, "SampleInfo")
+	assertEqual(t, true, zero2)
+	assertEqual(t, "SampleInfo", name2)
 }
 
 //
