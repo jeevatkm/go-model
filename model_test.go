@@ -365,9 +365,9 @@ func TestCopyMapElements(t *testing.T) {
 		MapStringInt:    map[string]int{"first": 1001, "second": 1002, "third": 1003, "forth": 1004},
 		MapStringString: map[string]string{"first": "1001", "second": "1002", "third": "1003"},
 		MapStruct: map[string]SampleSubInfo{
-			"struct1": SampleSubInfo{Name: "struct 1 value", Year: 2001},
-			"struct2": SampleSubInfo{Name: "struct 2 value", Year: 2002},
-			"struct3": SampleSubInfo{Name: "struct 3 value", Year: 2003},
+			"struct1": {Name: "struct 1 value", Year: 2001},
+			"struct2": {Name: "struct 2 value", Year: 2002},
+			"struct3": {Name: "struct 3 value", Year: 2003},
 		},
 		MapInterfaces: map[string]interface{}{
 			"inter1": 100001,
@@ -1367,9 +1367,9 @@ func TestMapMapElements(t *testing.T) {
 		MapStringInt:    map[string]int{"first": 1001, "second": 1002, "third": 1003, "forth": 1004},
 		MapStringString: map[string]string{"first": "1001", "second": "1002", "third": "1003"},
 		MapStruct: map[string]SampleSubInfo{
-			"struct1": SampleSubInfo{Name: "struct 1 value", Year: 2001},
-			"struct2": SampleSubInfo{Name: "struct 2 value", Year: 2002},
-			"struct3": SampleSubInfo{Name: "struct 3 value", Year: 2003},
+			"struct1": {Name: "struct 1 value", Year: 2001},
+			"struct2": {Name: "struct 2 value", Year: 2002},
+			"struct3": {Name: "struct 3 value", Year: 2003},
 		},
 		MapInterfaces: map[string]interface{}{
 			"inter1": 100001,
@@ -1562,15 +1562,15 @@ func TestMapSliceStructAndSliceStructPtr(t *testing.T) {
 	}
 
 	sliceStructPtr := []SampleSubInfo{
-		SampleSubInfo{Name: "Struct: Slice Ptr 1", Year: 2016},
-		SampleSubInfo{Name: "Struct: Slice Ptr 2", Year: 2015},
-		SampleSubInfo{Name: "Struct: Slice Ptr 3", Year: 2014},
+		{Name: "Struct: Slice Ptr 1", Year: 2016},
+		{Name: "Struct: Slice Ptr 2", Year: 2015},
+		{Name: "Struct: Slice Ptr 3", Year: 2014},
 	}
 	src := SampleStruct{
 		SliceStruct: []SampleSubInfo{
-			SampleSubInfo{Name: "Struct: Slice 1", Year: 2006},
-			SampleSubInfo{Name: "Struct: Slice 2", Year: 2005},
-			SampleSubInfo{Name: "Struct: Slice 3", Year: 2004},
+			{Name: "Struct: Slice 1", Year: 2006},
+			{Name: "Struct: Slice 2", Year: 2005},
+			{Name: "Struct: Slice 3", Year: 2004},
 		},
 		SliceStructPtr: &sliceStructPtr,
 	}
