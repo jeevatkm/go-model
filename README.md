@@ -2,17 +2,17 @@
 
 Robust & Easy to use model mapper and utility methods for Go. Typical methods increase productivity and make Go developement more fun :smile:
 
-**v0.2 released and tagged on Jan 26, 2016**
+***v0.3 released and tagged on Feb 16, 2016***
 
 go-model tested with Go `v1.2` and above.
 
 ## Features
-go-model provides handy methods (`Copy`, `Map`, `Clone`, `IsZero`, etc.) to process struct with below highlighted features. It's born from typical need while developing Go application or utility. I hope it's helpful!
+go-model provides [handy methods](#methods) to process `struct` with below highlighted features. It's born from typical need while developing Go application or utility. I hope it's helpful!
 * Embedded/Anonymous struct
 * Multi-level nested struct/map/slice
 * Pointer and non-pointer within struct/map/slice
 * Struct within map and slice
-* Embedded/Anonymous fields appear in map at same level as represented by Go
+* Embedded/Anonymous struct fields appear in map at same level as represented by Go
 * Interface within struct/map/slice
 * Add global no traverse type to the list or use `notraverse` option in the struct field
 * Options to name map key, omit empty fields, and instruct not to traverse with struct/map/slice
@@ -76,6 +76,7 @@ I want to convert my struct into Map (`map[string]interface{}`). Sure, go-model 
 // -, name, omitempty, notraverse to get desired result.
 sr, _ := myapp.GetSearchResult( /* params here */ )
 
+// Embedded/Anonymous struct fields appear in map at same level as represented by Go
 srchResMap, err := model.Map(sr)
 fmt.Println("Error:", err)
 
@@ -162,6 +163,9 @@ BTW, I'd like to know what you think about go-model. Kindly open an issue or sen
 
 ## Author
 Jeevanandam M. - jeeva@myjeeva.com
+
+## Contributors
+Have a look on [Contributors](https://github.com/jeevatkm/go-model/graphs/contributors) page.
 
 ## License
 go-model released under MIT license, refer [LICENSE](LICENSE) file.
