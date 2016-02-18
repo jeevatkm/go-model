@@ -37,7 +37,7 @@ const (
 
 var (
 	// Version # of go-model library
-	Version = "0.3"
+	Version = "0.4"
 
 	// NoTraverseTypeList keeps track of no-traverse type list at library level
 	NoTraverseTypeList map[reflect.Type]bool
@@ -107,9 +107,8 @@ func IsZero(s interface{}) bool {
 		return true
 	}
 
-	sv := indirect(valueOf(s))
-
-	if !isStruct(sv) {
+	sv, err := structValue(s)
+	if err != nil {
 		return false
 	}
 
@@ -168,9 +167,8 @@ func IsZeroInFields(s interface{}, names ...string) (string, bool) {
 		return "", true
 	}
 
-	sv := indirect(valueOf(s))
-
-	if !isStruct(sv) {
+	sv, err := structValue(s)
+	if err != nil {
 		return "", false
 	}
 
@@ -215,9 +213,8 @@ func HasZero(s interface{}) bool {
 		return true
 	}
 
-	sv := indirect(valueOf(s))
-
-	if !isStruct(sv) {
+	sv, err := structValue(s)
+	if err != nil {
 		return false
 	}
 
@@ -365,15 +362,10 @@ func Copy(dst, src interface{}) []error {
 // 		ArchiveInfo	BookArchive	`model:"archiveInfo,notraverse"`
 // 		Region		BookLocale	`model:",notraverse"`
 //
-func Clone(s interface{}) interface{} {
-	if s == nil {
-		return nil
-	}
-
-	sv := indirect(valueOf(s))
-
-	if !isStruct(sv) {
-		return nil
+func Clone(s interface{}) (interface{}, error) {
+	sv, err := structValue(s)
+	if err != nil {
+		return nil, err
 	}
 
 	// figure out target type
@@ -385,7 +377,7 @@ func Clone(s interface{}) interface{} {
 	// apply copy to target
 	doCopy(dv, sv)
 
-	return dv.Interface()
+	return dv.Interface(), nil
 }
 
 // Map method converts all the exported field values from the given `struct`
@@ -436,14 +428,9 @@ func Clone(s interface{}) interface{} {
 // 		Region		BookLocale	`model:",notraverse"`
 //
 func Map(s interface{}) (map[string]interface{}, error) {
-	if s == nil {
-		return nil, errors.New("Invalid input <nil>")
-	}
-
-	sv := indirect(valueOf(s))
-
-	if !isStruct(sv) {
-		return nil, errors.New("Input is not a struct")
+	sv, err := structValue(s)
+	if err != nil {
+		return nil, err
 	}
 
 	// processing, field value(s) into map
@@ -829,12 +816,12 @@ func isNoTraverseType(v reflect.Value) bool {
 func valiadateCopyField(f reflect.StructField, sfv, dfv reflect.Value) error {
 	// check dst field is exists, if not valid move on
 	if !dfv.IsValid() {
-		return fmt.Errorf("Field: '%v', dst is not valid", f.Name)
+		return fmt.Errorf("Field: '%v', does not exists in dst", f.Name)
 	}
 
 	// check kind of src and dst, if doesn't match move on
 	if (sfv.Kind() != dfv.Kind()) && !isInterface(dfv) {
-		return fmt.Errorf("Field: '%v', src [%v] & dst [%v] kind doesn't match",
+		return fmt.Errorf("Field: '%v', src [%v] & dst [%v] kind didn't match",
 			f.Name,
 			sfv.Kind(),
 			dfv.Kind(),
@@ -845,7 +832,7 @@ func valiadateCopyField(f reflect.StructField, sfv, dfv reflect.Value) error {
 	sfvt := deepTypeOf(sfv)
 	dfvt := deepTypeOf(dfv)
 	if (sfvt != dfvt) && !isInterface(dfv) {
-		return fmt.Errorf("Field: '%v', src [%v] & dst [%v] type doesn't match",
+		return fmt.Errorf("Field: '%v', src [%v] & dst [%v] type didn't match",
 			f.Name,
 			sfvt,
 			dfvt,
@@ -853,6 +840,20 @@ func valiadateCopyField(f reflect.StructField, sfv, dfv reflect.Value) error {
 	}
 
 	return nil
+}
+
+func structValue(s interface{}) (reflect.Value, error) {
+	if s == nil {
+		return reflect.Value{}, errors.New("Invalid input <nil>")
+	}
+
+	sv := indirect(valueOf(s))
+
+	if !isStruct(sv) {
+		return reflect.Value{}, errors.New("Input is not a struct")
+	}
+
+	return sv, nil
 }
 
 func zeroOf(f reflect.Value) reflect.Value {

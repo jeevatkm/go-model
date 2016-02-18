@@ -603,7 +603,7 @@ func TestCopyStructElementKindDiff(t *testing.T) {
 
 	errs := Copy(&Destination{}, Source{Name: "This struct element kind is different"})
 
-	assertEqual(t, "Field: 'Name', src [string] & dst [int] kind doesn't match", errs[0].Error())
+	assertEqual(t, "Field: 'Name', src [string] & dst [int] kind didn't match", errs[0].Error())
 }
 
 func TestCopyStructElementTypeDiffOnLevel1(t *testing.T) {
@@ -638,9 +638,9 @@ func TestCopyStructElementTypeDiffOnLevel1(t *testing.T) {
 
 	logSrcDst(t, src, dst)
 
-	assertEqual(t, "Field: 'Name', src [string] & dst [int] kind doesn't match", errs[0].Error())
+	assertEqual(t, "Field: 'Name', src [string] & dst [int] kind didn't match", errs[0].Error())
 	assertEqual(t,
-		"Field: 'Level1', src [model.SampleLevelSrc] & dst [model.SampleLevelDst] type doesn't match",
+		"Field: 'Level1', src [model.SampleLevelSrc] & dst [model.SampleLevelDst] type didn't match",
 		errs[1].Error(),
 	)
 }
@@ -673,7 +673,7 @@ func TestCopyStructTypeDiffOnLevel1Interface(t *testing.T) {
 
 	logSrcDst(t, src, dst)
 
-	assertEqual(t, "Field: 'Name', src [string] & dst [int] kind doesn't match", errs[0].Error())
+	assertEqual(t, "Field: 'Name', src [string] & dst [int] kind didn't match", errs[0].Error())
 	assertEqual(t, 0, dst.Name)
 	assertEqual(t, src.Level1.Name, dst.Level1.(SampleLevelSrc).Name)
 }
@@ -693,7 +693,7 @@ func TestCopyStructElementIsNotValidInDst(t *testing.T) {
 
 	errs := Copy(&dst, src)
 
-	assertEqual(t, "Field: 'Year', dst is not valid", errs[0].Error())
+	assertEqual(t, "Field: 'Year', does not exists in dst", errs[0].Error())
 }
 
 func TestCopyStructZeroValToDst(t *testing.T) {
@@ -1598,14 +1598,16 @@ func TestMapSliceStructAndSliceStructPtr(t *testing.T) {
 }
 
 func TestCloneInputNil(t *testing.T) {
-	result := Clone(nil)
+	result, err := Clone(nil)
 
+	assertEqual(t, "Invalid input <nil>", err.Error())
 	assertEqual(t, true, result == nil)
 }
 
 func TestCloneNotAStruct(t *testing.T) {
-	result := Clone("I'm not a struct")
+	result, err := Clone("I'm not a struct")
 
+	assertEqual(t, "Input is not a struct", err.Error())
 	assertEqual(t, true, result == nil)
 }
 
@@ -1618,9 +1620,10 @@ func TestCloneStruct(t *testing.T) {
 
 	src := SampleInfo{Name: "My name is go-model", Year: 2016}
 
-	result := Clone(src)
+	result, err := Clone(src)
 
 	assertEqual(t, true, result != nil)
+	assertEqual(t, true, err == nil)
 	assertEqual(t, src.Name, result.(*SampleInfo).Name)
 	assertEqual(t, src.Year, result.(*SampleInfo).Year)
 }
@@ -1634,9 +1637,10 @@ func TestCloneStructPtr(t *testing.T) {
 
 	src := SampleInfo{Name: "My name is go-model ptr", Year: 2015}
 
-	result := Clone(&src)
+	result, err := Clone(&src)
 
 	assertEqual(t, true, result != nil)
+	assertEqual(t, true, err == nil)
 	assertEqual(t, src.Name, result.(*SampleInfo).Name)
 	assertEqual(t, src.Year, result.(*SampleInfo).Year)
 }
