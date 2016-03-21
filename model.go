@@ -112,15 +112,18 @@ func IsZero(s interface{}) bool {
 		return false
 	}
 
-	fields := getFields(sv)
+	fields := modelFields(sv)
 
 	for _, f := range fields {
 		fv := sv.FieldByName(f.Name)
+		tag := newTag(f.Tag.Get(TagName))
+
+		if tag.isOmitField() {
+			continue
+		}
 
 		// embedded or nested struct
 		if isStruct(fv) {
-			tag := newTag(f.Tag.Get(TagName))
-
 			// check type is in NoTraverseTypeList or has 'notraverse' tag option
 			if isNoTraverseType(fv) || tag.isNoTraverse() {
 
@@ -218,15 +221,18 @@ func HasZero(s interface{}) bool {
 		return false
 	}
 
-	fields := getFields(sv)
+	fields := modelFields(sv)
 
 	for _, f := range fields {
 		fv := sv.FieldByName(f.Name)
+		tag := newTag(f.Tag.Get(TagName))
+
+		if tag.isOmitField() {
+			continue
+		}
 
 		// embedded or nested struct
 		if isStruct(fv) {
-			tag := newTag(f.Tag.Get(TagName))
-
 			// check type is in NoTraverseTypeList or has 'notraverse' tag option
 			if isNoTraverseType(fv) || tag.isNoTraverse() {
 
@@ -437,6 +443,26 @@ func Map(s interface{}) (map[string]interface{}, error) {
 	return doMap(sv), nil
 }
 
+// Fields method returns the exported struct fields from the given `struct`.
+// 		Example:
+//
+// 		src := SampleStruct { /* source struct field values go here */ }
+//
+// 		fields := model.Fields(src)
+// 		for _, f := range fields {
+// 			tag := newTag(f.Tag.Get("model"))
+// 			fmt.Println("Field Name:", f.Name, "Tag Name:", tag.Name, "Tag Options:", tag.Options)
+// 		}
+//
+func Fields(s interface{}) ([]reflect.StructField, error) {
+	sv, err := structValue(s)
+	if err != nil {
+		return nil, err
+	}
+
+	return modelFields(sv), nil
+}
+
 //
 // go-model init
 //
@@ -469,13 +495,17 @@ func init() {
 func doCopy(dv, sv reflect.Value) []error {
 	dv = indirect(dv)
 	sv = indirect(sv)
-	fields := getFields(sv)
+	fields := modelFields(sv)
 
 	var errs []error
 
 	for _, f := range fields {
 		sfv := sv.FieldByName(f.Name)
 		tag := newTag(f.Tag.Get(TagName))
+
+		if tag.isOmitField() {
+			continue
+		}
 
 		// check type is in NoTraverseTypeList or has 'notraverse' tag option
 		noTraverse := (isNoTraverseType(sfv) || tag.isNoTraverse())
@@ -549,12 +579,16 @@ func doCopy(dv, sv reflect.Value) []error {
 
 func doMap(sv reflect.Value) map[string]interface{} {
 	sv = indirect(sv)
-	fields := getFields(sv)
+	fields := modelFields(sv)
 	m := map[string]interface{}{}
 
 	for _, f := range fields {
 		fv := sv.FieldByName(f.Name)
 		tag := newTag(f.Tag.Get(TagName))
+
+		if tag.isOmitField() {
+			continue
+		}
 
 		// map key name
 		keyName := f.Name
@@ -766,31 +800,6 @@ func mapVal(f reflect.Value, notraverse bool) reflect.Value {
 	return nf
 }
 
-func getFields(v reflect.Value) []reflect.StructField {
-	v = indirect(v)
-	t := v.Type()
-
-	var fs []reflect.StructField
-
-	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
-
-		// Only exported fields of a struct can be accessed.
-		// So, non-exported fields will be ignored
-		if f.PkgPath == "" {
-
-			// `model="-"` attributes will be omitted
-			if tag := f.Tag.Get(TagName); tag == OmitField {
-				continue
-			}
-
-			fs = append(fs, f)
-		}
-	}
-
-	return fs
-}
-
 func isFieldZero(f reflect.Value) bool {
 	// zero value of the given field
 	// For example: reflect.Zero(reflect.TypeOf(42)) returns a Value with Kind Int and value 0
@@ -840,6 +849,25 @@ func valiadateCopyField(f reflect.StructField, sfv, dfv reflect.Value) error {
 	}
 
 	return nil
+}
+
+func modelFields(v reflect.Value) []reflect.StructField {
+	v = indirect(v)
+	t := v.Type()
+
+	var fs []reflect.StructField
+
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+
+		// Only exported fields of a struct can be accessed.
+		// So, non-exported fields will be ignored
+		if f.PkgPath == "" {
+			fs = append(fs, f)
+		}
+	}
+
+	return fs
 }
 
 func structValue(s interface{}) (reflect.Value, error) {

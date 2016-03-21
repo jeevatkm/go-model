@@ -21,6 +21,10 @@ func newTag(modelTag string) *tag {
 	return &t
 }
 
+func (t *tag) isOmitField() bool {
+	return t.Name == OmitField
+}
+
 func (t *tag) isOmitEmpty() bool {
 	return t.isExists(OmitEmpty)
 }

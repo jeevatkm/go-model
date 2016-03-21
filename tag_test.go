@@ -38,6 +38,16 @@ func TestNewTagEmptyValues(t *testing.T) {
 	assertEqual(t, "", tag.Options)
 }
 
+func TestNewTagSkipField(t *testing.T) {
+	tag := newTag("-")
+
+	logIt(t, "Model Tag", tag)
+
+	assertEqual(t, "-", tag.Name)
+	assertEqual(t, "", tag.Options)
+	assertEqual(t, true, tag.isOmitField())
+}
+
 func TestIsOmitEmpty(t *testing.T) {
 	tag1 := newTag("fieldName,omitempty,notraverse")
 	logIt(t, "Model Tag", tag1)

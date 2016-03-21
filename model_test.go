@@ -109,10 +109,11 @@ func TestCopyBooleanAndBooleanPtr(t *testing.T) {
 
 func TestCopyFloatAndFloatPtr(t *testing.T) {
 	type SampleStruct struct {
-		Float32    float32
-		Float64    float64
-		Float32Ptr *float32
-		Float64Ptr *float64
+		Float32        float32
+		Float64        float64
+		Float32PtrOmit *float32 `model:"-"`
+		Float32Ptr     *float32
+		Float64Ptr     *float64
 	}
 
 	f32 := float32(0.1)
@@ -909,24 +910,40 @@ func TestNonHasZeroCheck(t *testing.T) {
 
 func TestHasZeroForField(t *testing.T) {
 	type SampleSubInfo struct {
-		Name string
-		Year int
+		OmitThisField string `model:"-"`
+		Name          string
+		Year          int
 	}
 
 	if !HasZero(&SampleSubInfo{Name: "only I have populated"}) {
 		t.Error("Supposed to have one-zero filed i.e. Year")
 	}
 
-	type SampleStruct struct {
-		Level1Struct           SampleSubInfo
+	type SampleSrcStruct1 struct {
+		Level1StructOmit       SampleSubInfo `model:"-"`
 		Level1StructPtr        *SampleSubInfo
+		Level1Struct           SampleSubInfo
 		Level1StructNoTraverse *SampleSubInfo `model:",notraverse"`
 		CreatedTime            time.Time
 		SampleSubInfo
 	}
 
-	src1 := SampleStruct{}
+	src1 := SampleSrcStruct1{}
 	if !HasZero(src1) {
+		t.Error("Suppose to be empty")
+	}
+
+	type SampleSrcStruct2 struct {
+		Level1StructOmit       SampleSubInfo
+		Level1StructPtr        *SampleSubInfo
+		Level1Struct           SampleSubInfo
+		Level1StructNoTraverse *SampleSubInfo `model:",notraverse"`
+		CreatedTime            time.Time
+		SampleSubInfo
+	}
+
+	src2 := SampleSrcStruct2{}
+	if !HasZero(src2) {
 		t.Error("Suppose to be empty")
 	}
 
@@ -1204,12 +1221,13 @@ func TestMapSliceStringAndSliceStringPtr(t *testing.T) {
 
 func TestMapSliceElementsPtr(t *testing.T) {
 	type SampleSubInfo2 struct {
-		SliceIntPtr    []*int
-		SliceInt64Ptr  []*int64
-		SliceStringPtr []*string `model:"stringPtr"`
-		SliceFloat32   []*float32
-		SliceFloat64   []*float64
-		SliceInterface []interface{} `model:"interface"`
+		SliceIntPtr      []*int
+		SliceInt64Ptr    []*int64
+		SliceStringPtr   []*string  `model:"stringPtr"`
+		SliceFloat32Omit []*float32 `model:"-"`
+		SliceFloat32     []*float32
+		SliceFloat64     []*float64
+		SliceInterface   []interface{} `model:"interface"`
 	}
 
 	type SampleSubInfo1 struct {
@@ -1747,6 +1765,31 @@ func TestIsZeroInFieldsEmbedded(t *testing.T) {
 	name2, zero2 := IsZeroInFields(SampleStruct{}, "SampleInfo")
 	assertEqual(t, true, zero2)
 	assertEqual(t, "SampleInfo", name2)
+}
+
+func TestFields(t *testing.T) {
+	type SampleInfo struct {
+		Name   string
+		Year   int
+		Level2 float32
+	}
+
+	type SampleStruct struct {
+		Level1Struct           SampleInfo
+		Level1StructPtr        *SampleInfo
+		Level1StructNoTraverse SampleInfo `model:",notraverse"`
+		CreatedTime            time.Time
+		SampleInfo
+	}
+
+	fields1, err1 := Fields(nil)
+	assertEqual(t, true, err1.Error() == "Invalid input <nil>")
+	assertEqual(t, true, fields1 == nil)
+
+	fields2, err2 := Fields(&SampleStruct{})
+
+	assertError(t, err2)
+	assertEqual(t, true, len(fields2) > 0)
 }
 
 //
