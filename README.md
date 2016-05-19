@@ -1,36 +1,39 @@
 # go-model [![Build Status](https://travis-ci.org/jeevatkm/go-model.svg?branch=master)](https://travis-ci.org/jeevatkm/go-model) [![GoCover](https://gocover.io/_badge/github.com/jeevatkm/go-model)](https://gocover.io/github.com/jeevatkm/go-model) [![GoReport](https://goreportcard.com/badge/jeevatkm/go-model)](https://goreportcard.com/report/jeevatkm/go-model) [![GoDoc](https://godoc.org/github.com/jeevatkm/go-model?status.svg)](https://godoc.org/github.com/jeevatkm/go-model) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Robust & Easy to use model mapper and utility methods for Go. Typical methods increase productivity and make Go developement more fun :smile:
+Robust & Easy to use model mapper and utility methods for Go `struct`. Typical methods increase productivity and make Go development more fun :smile:
 
-***v0.3 released and tagged on Feb 16, 2016***
+***v0.4 released and tagged on May 19, 2016***
 
 go-model tested with Go `v1.2` and above.
 
 ## Features
-go-model provides [handy methods](#methods) to process `struct` with below highlighted features. It's born from typical need while developing Go application or utility. I hope it's helpful!
+go-model library provides [handy methods](#methods) to process `struct` with below highlighted features. It's born from typical need while developing Go application or utility. I hope it's helpful to Go community!
 * Embedded/Anonymous struct
 * Multi-level nested struct/map/slice
 * Pointer and non-pointer within struct/map/slice
 * Struct within map and slice
 * Embedded/Anonymous struct fields appear in map at same level as represented by Go
 * Interface within struct/map/slice
+* Get struct field `reflect.Kind` by field name
+* Get all the struct field tags (`reflect.StructTag`) or selectively by field name
+* Get all `reflect.StructField` for given struct instance
 * Add global no traverse type to the list or use `notraverse` option in the struct field
 * Options to name map key, omit empty fields, and instruct not to traverse with struct/map/slice
 
 ## Installation
 
-#### Stable - Version
+#### Stable - Release Version
 Please refer section [Versioning](#versioning) for detailed info.
 
 ```sh
 # install the library
-go get gopkg.in/jeevatkm/go-model.v0
+go get -u gopkg.in/jeevatkm/go-model.v0
 ```
 
 #### Latest
 ```sh
 # install the latest & greatest library
-go get github.com/jeevatkm/go-model
+go get -u github.com/jeevatkm/go-model
 ```
 
 ## Usage
@@ -41,13 +44,17 @@ import (
 )
 ```
 
-### Methods
+### Supported Methods
 * Copy - [usage](#copy-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#Copy)
 * Map - [usage](#map-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#Map)
 * Clone - [usage](#clone-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#Clone)
 * IsZero - [usage](#iszero-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#IsZero)
 * HasZero - [usage](#haszero-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#HasZero)
 * IsZeroInFields - [usage](#iszeroinfields-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#IsZeroInFields)
+* Fields - [usage](#fields-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#Fields)
+* Kind - [usage](#kind-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#Kind)
+* Tag - [usage](#tag-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#Tag)
+* Tags - [usage](#tags-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#Tags)
 * AddNoTraverseType - [usage](#addnotraversetype--removenotraversetype-methods), [godoc](https://godoc.org/github.com/jeevatkm/go-model#AddNoTraverseType)
 * RemoveNoTraverseType - [usage](#addnotraversetype--removenotraversetype-methods), [godoc](https://godoc.org/github.com/jeevatkm/go-model#RemoveNoTraverseType)
 
@@ -135,6 +142,59 @@ fieldName, isEmpty := model.IsZeroInFields(product, "SKU", "Title", "InternalIde
 
 fmt.Println("Empty Field Name:", fieldName)
 fmt.Println("Yes, I have zero value:", isEmpty)
+```
+
+#### Fields Method
+You wanna all the fields from `struct`, Yes you can have it :)
+```go
+src := SampleStruct {
+  /* struct fields go here */
+}
+
+fields, _ := model.Fields(src)
+fmt.Println("Fields:", fields)
+```
+
+#### Kind Method
+go-model library provides an ability to know the `reflect.Kind` in as easy way.
+```go
+src := SampleStruct {
+  /* struct fields go here */
+}
+
+fieldKind, _ := model.Kind(src, "BookingInfoPtr")
+fmt.Println("Field kind:", fieldKind)
+```
+
+#### Tag Method
+I want to get Go lang supported Tag value from my `struct`. Yes, it is easy to get it.
+```go
+src := SampleStruct {
+	BookCount      int         `json:"-"`
+	BookCode       string      `json:"-"`
+	ArchiveInfo    BookArchive `json:"archive_info,omitempty"`
+	Region         BookLocale  `json:"region,omitempty"`
+}
+
+tag, _ := model.Tag(src, "ArchiveInfo")
+fmt.Println("Tag Value:", tag.Get("json"))
+
+// Output:
+Tag Value: archive_info,omitempty
+```
+
+#### Tags Method
+I would like to get all the fields Tag values from my `struct`. It's easy.
+```go
+src := SampleStruct {
+	BookCount      int         `json:"-"`
+	BookCode       string      `json:"-"`
+	ArchiveInfo    BookArchive `json:"archive_info,omitempty"`
+	Region         BookLocale  `json:"region,omitempty"`
+}
+
+tags, _ := model.Tags(src)
+fmt.Println("Tags:", tags)
 ```
 
 #### AddNoTraverseType & RemoveNoTraverseType Methods
