@@ -1792,6 +1792,116 @@ func TestFields(t *testing.T) {
 	assertEqual(t, true, len(fields2) > 0)
 }
 
+func TestTag(t *testing.T) {
+	type SampleInfo struct {
+		MapIntInt       map[int]int
+		MapStringInt    map[string]int `model:"stringInt"`
+		MapStringString map[string]string
+	}
+
+	type SampleStruct struct {
+		Name                   string      `json:"name,omitempty"`
+		Year                   int         `json:"year"`
+		Level2                 float32     `json:"level2"`
+		Struct                 SampleInfo  `json:"struct"`
+		StructPtr              *SampleInfo `json:"struct_ptr"`
+		Level1StructNoTraverse SampleInfo  `model:",notraverse"`
+		CreatedTime            *time.Time  `json:"created_time,omitempty"`
+	}
+
+	s := SampleStruct{}
+
+	tag1, err1 := Tag(s, "StructPtr")
+	assertError(t, err1)
+	assertEqual(t, "struct_ptr", tag1.Get("json"))
+
+	tag2, err2 := Tag(s, "CreatedTime")
+	assertError(t, err2)
+	assertEqual(t, "created_time,omitempty", tag2.Get("json"))
+
+	tag3, err3 := Tag(s, "Level1StructNoTraverse")
+	assertError(t, err3)
+	assertEqual(t, "", tag3.Get("json"))
+
+	_, err4 := Tag(nil, "Level1StructNoTraverse")
+	assertEqual(t, "Invalid input <nil>", err4.Error())
+
+	_, err5 := Tag(s, "NotExists")
+	assertEqual(t, "Field: 'NotExists', does not exists", err5.Error())
+}
+
+func TestTags(t *testing.T) {
+	type SampleInfo struct {
+		MapIntInt       map[int]int
+		MapStringInt    map[string]int `model:"stringInt"`
+		MapStringString map[string]string
+	}
+
+	type SampleStruct struct {
+		Name                   string      `json:"name,omitempty"`
+		Year                   int         `json:"year"`
+		Level2                 float32     `json:"level2"`
+		Struct                 SampleInfo  `json:"struct"`
+		StructPtr              *SampleInfo `json:"struct_ptr"`
+		Level1StructNoTraverse SampleInfo  `model:",notraverse"`
+		CreatedTime            *time.Time  `json:"created_time,omitempty"`
+	}
+
+	s := SampleStruct{}
+
+	tags, err1 := Tags(s)
+	assertError(t, err1)
+	assertEqual(t, "struct_ptr", tags["StructPtr"].Get("json"))
+	assertEqual(t, "created_time,omitempty", tags["CreatedTime"].Get("json"))
+
+	_, err2 := Tags(nil)
+	assertEqual(t, "Invalid input <nil>", err2.Error())
+}
+
+func TestKind(t *testing.T) {
+	type SampleInfo struct {
+		MapIntInt       map[int]int
+		MapStringInt    map[string]int `model:"stringInt"`
+		MapStringString map[string]string
+	}
+
+	type SampleStruct struct {
+		Name                   string      `json:"name,omitempty"`
+		Year                   int         `json:"year"`
+		Level2                 float32     `json:"level2"`
+		Struct                 SampleInfo  `json:"struct"`
+		StructPtr              *SampleInfo `json:"struct_ptr"`
+		Level1StructNoTraverse SampleInfo  `model:",notraverse"`
+		CreatedTime            time.Time   `json:"created_time,omitempty"`
+	}
+
+	s := SampleStruct{}
+
+	kind1, err1 := Kind(s, "Name")
+	assertError(t, err1)
+	assertEqual(t, true, reflect.String == kind1)
+
+	kind2, err2 := Kind(s, "StructPtr")
+	assertError(t, err2)
+	assertEqual(t, true, reflect.Ptr == kind2)
+
+	kind3, err3 := Kind(s, "CreatedTime")
+	assertError(t, err3)
+	assertEqual(t, true, reflect.Struct == kind3)
+
+	kind4, err4 := Kind(s, "Level2")
+	assertError(t, err4)
+	assertEqual(t, true, reflect.Float32 == kind4)
+
+	kind5, err5 := Kind(nil, "NoExists")
+	assertEqual(t, "Invalid input <nil>", err5.Error())
+	assertEqual(t, true, reflect.Invalid == kind5)
+
+	kind6, err6 := Kind(s, "NoExists")
+	assertEqual(t, "Field: 'NoExists', does not exists", err6.Error())
+	assertEqual(t, true, reflect.Invalid == kind6)
+}
+
 //
 // helper test methods
 //

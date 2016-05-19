@@ -324,7 +324,7 @@ func Copy(dst, src interface{}) []error {
 
 	// processing, copy field value(s)
 	errs = doCopy(dv, sv)
-	if errs != nil {
+	if len(errs) > 0 {
 		return errs
 	}
 
@@ -448,7 +448,7 @@ func Map(s interface{}) (map[string]interface{}, error) {
 //
 // 		src := SampleStruct { /* source struct field values go here */ }
 //
-// 		fields := model.Fields(src)
+// 		fields, _ := model.Fields(src)
 // 		for _, f := range fields {
 // 			tag := newTag(f.Tag.Get("model"))
 // 			fmt.Println("Field Name:", f.Name, "Tag Name:", tag.Name, "Tag Options:", tag.Options)
@@ -461,6 +461,87 @@ func Fields(s interface{}) ([]reflect.StructField, error) {
 	}
 
 	return modelFields(sv), nil
+}
+
+// Tag method returns the exported struct field `Tag` value from the given struct.
+// 		Example:
+//
+// 		src := SampleStruct {
+// 			BookCount      int         `json:"-"`
+// 			BookCode       string      `json:"-"`
+// 			ArchiveInfo    BookArchive `json:"archive_info,omitempty"`
+// 			Region         BookLocale  `json:"region,omitempty"`
+// 		}
+//
+// 		tag, _ := model.Tag(src, "ArchiveInfo")
+// 		fmt.Println("Tag Value:", tag.Get("json"))
+//
+// 		// Output:
+// 		Tag Value: archive_info,omitempty
+//
+func Tag(s interface{}, name string) (reflect.StructTag, error) {
+	sv, err := structValue(s)
+	if err != nil {
+		return "", err
+	}
+
+	fv, ok := sv.Type().FieldByName(name)
+	if !ok {
+		return "", fmt.Errorf("Field: '%v', does not exists", name)
+	}
+
+	return fv.Tag, nil
+}
+
+// Tags method returns the exported struct fields `Tag` value from the given struct.
+// 		Example:
+//
+// 		src := SampleStruct {
+// 			BookCount      int         `json:"-"`
+// 			BookCode       string      `json:"-"`
+// 			ArchiveInfo    BookArchive `json:"archive_info,omitempty"`
+// 			Region         BookLocale  `json:"region,omitempty"`
+// 		}
+//
+// 		tags, _ := model.Tags(src)
+// 		fmt.Println("Tags:", tags)
+//
+func Tags(s interface{}) (map[string]reflect.StructTag, error) {
+	sv, err := structValue(s)
+	if err != nil {
+		return nil, err
+	}
+
+	tags := map[string]reflect.StructTag{}
+
+	fields := modelFields(sv)
+	for _, f := range fields {
+		tags[f.Name] = f.Tag
+	}
+
+	return tags, nil
+}
+
+// Kind method returns `reflect.Kind` for the given field name from the `struct`.
+// 		Example:
+//
+// 		src := SampleStruct {
+// 			BookCount      int         `json:"-"`
+// 			BookCode       string      `json:"-"`
+// 			ArchiveInfo    BookArchive `json:"archive_info,omitempty"`
+// 			Region         BookLocale  `json:"region,omitempty"`
+// 		}
+//
+// 		fieldKind, _ := model.Kind(src, "ArchiveInfo")
+// 		fmt.Println("Field kind:", fieldKind)
+//
+func Kind(s interface{}, name string) (reflect.Kind, error) {
+	fv, err := getField(s, name)
+	if err != nil {
+		return reflect.Invalid, err
+	}
+
+	return fv.Type().Kind(), nil
 }
 
 //
@@ -862,6 +943,7 @@ func modelFields(v reflect.Value) []reflect.StructField {
 
 		// Only exported fields of a struct can be accessed.
 		// So, non-exported fields will be ignored
+		// TODO Go 1.6 changes -> f.PkgPath != "" && !f.Anonymous
 		if f.PkgPath == "" {
 			fs = append(fs, f)
 		}
@@ -882,6 +964,20 @@ func structValue(s interface{}) (reflect.Value, error) {
 	}
 
 	return sv, nil
+}
+
+func getField(s interface{}, name string) (reflect.Value, error) {
+	sv, err := structValue(s)
+	if err != nil {
+		return reflect.Value{}, err
+	}
+
+	field := sv.FieldByName(name)
+	if !field.IsValid() {
+		return reflect.Value{}, fmt.Errorf("Field: '%v', does not exists", name)
+	}
+
+	return field, nil
 }
 
 func zeroOf(f reflect.Value) reflect.Value {
