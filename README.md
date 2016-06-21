@@ -7,7 +7,7 @@ Robust & Easy to use model mapper and utility methods for Go `struct`. Typical m
 go-model tested with Go `v1.2` and above.
 
 ## Features
-go-model library provides [handy methods](#methods) to process `struct` with below highlighted features. It's born from typical need while developing Go application or utility. I hope it's helpful to Go community!
+go-model library provides [handy methods](#supported-methods) to process `struct` with below highlighted features. It's born from typical need while developing Go application or utility. I hope it's helpful to Go community!
 * Embedded/Anonymous struct
 * Multi-level nested struct/map/slice
 * Pointer and non-pointer within struct/map/slice
