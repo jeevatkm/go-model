@@ -615,7 +615,7 @@ func doCopy(dv, sv reflect.Value) []error {
 		}
 
 		// validate field - exists in dst, kind and type
-		err := valiadateCopyField(f, sfv, dfv)
+		err := validateCopyField(f, sfv, dfv)
 		if err != nil {
 			errs = append(errs, err)
 
@@ -903,7 +903,7 @@ func isNoTraverseType(v reflect.Value) bool {
 	return false
 }
 
-func valiadateCopyField(f reflect.StructField, sfv, dfv reflect.Value) error {
+func validateCopyField(f reflect.StructField, sfv, dfv reflect.Value) error {
 	// check dst field is exists, if not valid move on
 	if !dfv.IsValid() {
 		return fmt.Errorf("Field: '%v', does not exists in dst", f.Name)
