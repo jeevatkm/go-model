@@ -602,6 +602,14 @@ func doCopy(dv, sv reflect.Value) []error {
 		// get dst field by name
 		dfv := dv.FieldByName(f.Name)
 
+		// validate field - exists in dst, kind and type
+		err := valiadateCopyField(f, sfv, dfv)
+
+		if err != nil {
+			errs = append(errs, err)
+
+			continue
+		}
 		// if value is not exists
 		if !isVal {
 			// field value is zero and check 'omitempty' option present
@@ -610,14 +618,6 @@ func doCopy(dv, sv reflect.Value) []error {
 			if !tag.isOmitEmpty() {
 				dfv.Set(zeroOf(dfv))
 			}
-
-			continue
-		}
-
-		// validate field - exists in dst, kind and type
-		err := valiadateCopyField(f, sfv, dfv)
-		if err != nil {
-			errs = append(errs, err)
 
 			continue
 		}
