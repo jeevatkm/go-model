@@ -37,7 +37,7 @@ const (
 
 var (
 	// Version # of go-model library
-	Version = "0.4"
+	Version = "0.5"
 
 	// NoTraverseTypeList keeps track of no-traverse type list at library level
 	NoTraverseTypeList map[reflect.Type]bool
