@@ -1902,6 +1902,29 @@ func TestKind(t *testing.T) {
 	assertEqual(t, true, reflect.Invalid == kind6)
 }
 
+func TestMissingDestField(t *testing.T) {
+
+	type C struct {
+	}
+
+	type A struct {
+		X string
+		Y string
+		Z C
+	}
+
+	type B struct {
+		X string
+	}
+
+	a := A{X: "X", Y: "Y", Z: C{}}
+	b := B{}
+	errs := Copy(&b, &a)
+	assertEqual(t, 2, len(errs))
+	assertEqual(t, "Field: 'Y', does not exists in dst", errs[0].Error())
+	assertEqual(t, "Field: 'Z', does not exists in dst", errs[1].Error())
+}
+
 //
 // helper test methods
 //
