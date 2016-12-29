@@ -19,6 +19,7 @@ go-model library provides [handy methods](#supported-methods) to process `struct
 * Get all `reflect.StructField` for given struct instance
 * Add global no traverse type to the list or use `notraverse` option in the struct field
 * Options to name map key, omit empty fields, and instruct not to traverse with struct/map/slice
+* Conversions between mixed non-pointer types
 
 ## Installation
 
@@ -57,6 +58,8 @@ import (
 * Tags - [usage](#tags-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#Tags)
 * AddNoTraverseType - [usage](#addnotraversetype--removenotraversetype-methods), [godoc](https://godoc.org/github.com/jeevatkm/go-model#AddNoTraverseType)
 * RemoveNoTraverseType - [usage](#addnotraversetype--removenotraversetype-methods), [godoc](https://godoc.org/github.com/jeevatkm/go-model#RemoveNoTraverseType)
+* AddConversion - [usage](#addconversion--removeconversion-methods), [godoc](https://godoc.org/github.com/jeevatkm/go-model#AddConversion)
+* RemoveConversion - [usage](#addconversion--removeconversion-methods), [godoc](https://godoc.org/github.com/jeevatkm/go-model#RemoveConversion)
 
 #### Copy Method
 How do I copy my struct object into another? Not to worry, go-model does deep copy.
@@ -210,6 +213,23 @@ model.AddNoTraverseType(time.Location{}, &time.Location{})
 // Removing type from NoTraverseTypeList
 model.RemoveNoTraverseType(time.Location{}, &time.Location{})
 ```
+
+#### AddConversion & RemoveConversion Method
+
+This example registers a custom conversion from the `int` to the `string` type.
+```go
+AddConversion((*int)(nil), (*string)(nil), func(in reflect.Value) (reflect.Value, error) {
+		return reflect.ValueOf(strconv.FormatInt(in.Int(), 10)), nil
+	})
+```
+
+If a an integer field on the source struct matches the name of a string field on the target struct, the provided Converter method is invoked.
+
+Note that if you want to register a converter from `int` to `*string` you will
+have to provide a pointer to a pointer as destination type ( `(**string)(nil)`
+).
+
+More examples can be found in the [AddConversion godoc](https://godoc.org/github.com/jeevatkm/go-model#AddConversion).
 
 ## Versioning
 go-model releases versions according to [Semantic Versioning](http://semver.org)

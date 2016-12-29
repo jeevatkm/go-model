@@ -15,6 +15,9 @@ import (
 	"time"
 )
 
+// Converter is used to provide custom mappers for a datatype pair.
+type Converter func(in reflect.Value) (reflect.Value, error)
+
 const (
 	// TagName is used to mention field options for go-model library.
 	//
@@ -42,6 +45,9 @@ var (
 	// NoTraverseTypeList keeps track of no-traverse type list at library level
 	NoTraverseTypeList map[reflect.Type]bool
 
+	// Type conversion functions at library level
+	converterMap map[reflect.Type]map[reflect.Type]Converter
+
 	typeOfBytes     = reflect.TypeOf([]byte(nil))
 	typeOfInterface = reflect.TypeOf((*interface{})(nil)).Elem()
 )
@@ -66,6 +72,49 @@ func AddNoTraverseType(i ...interface{}) {
 		// not found, add it
 		NoTraverseTypeList[t] = true
 	}
+}
+
+func extractType(x interface{}) reflect.Type {
+	return reflect.TypeOf(x).Elem()
+}
+
+// AddConversion mothod allows registering a custom `Converter` into the global `converterMap`
+// by supplying pointers of the target types.
+func AddConversion(in interface{}, out interface{}, converter Converter) {
+	srcType := extractType(in)
+	targetType := extractType(out)
+	AddConversionByType(srcType, targetType, converter)
+}
+
+// AddConversionByType allows registering a custom `Converter` into golbal `converterMap` by types.
+func AddConversionByType(srcType reflect.Type, targetType reflect.Type, converter Converter) {
+	if _, ok := converterMap[srcType]; !ok {
+		converterMap[srcType] = map[reflect.Type]Converter{}
+	}
+	converterMap[srcType][targetType] = converter
+}
+
+// Remove registered conversions
+func RemoveConversion(in interface{}, out interface{}) {
+	srcType := extractType(in)
+	targetType := extractType(out)
+	if _, ok := converterMap[srcType]; !ok {
+		return
+	}
+	if _, ok := converterMap[srcType][targetType]; !ok {
+		return
+	}
+	delete(converterMap[srcType], targetType)
+}
+
+func conversionExists(srcType reflect.Type, destType reflect.Type) bool {
+	if _, ok := converterMap[srcType]; !ok {
+		return false
+	}
+	if _, ok := converterMap[srcType][destType]; !ok {
+		return false
+	}
+	return true
 }
 
 // RemoveNoTraverseType method is used to remove Go Lang type from the `NoTraverseTypeList`.
@@ -550,6 +599,7 @@ func Kind(s interface{}, name string) (reflect.Kind, error) {
 
 func init() {
 	NoTraverseTypeList = map[reflect.Type]bool{}
+	converterMap = map[reflect.Type]map[reflect.Type]Converter{}
 
 	// Default NoTraverseTypeList
 	// --------------------------
@@ -618,40 +668,25 @@ func doCopy(dv, sv reflect.Value) []error {
 			if !tag.isOmitEmpty() {
 				dfv.Set(zeroOf(dfv))
 			}
-
 			continue
 		}
 
 		// check dst field settable or not
 		if dfv.CanSet() {
-
-			// handle embedded or nested struct
 			if isStruct(sfv) {
+				// handle embedded or nested struct
+				v, innerErrs := copyVal(dfv.Type(), sfv, noTraverse)
 
-				if noTraverse {
-					// This is struct kind and it's present in NoTraverseTypeList or
-					// has 'notraverse' tag option. So go-model is not gonna traverse inside.
-					// however will take care of field value
-					dfv.Set(copyVal(sfv, true))
-				} else {
-					ndv := reflect.New(indirect(sfv).Type())
-					innerErrs := doCopy(ndv, sfv)
+				// add errors to main stream
+				errs = append(errs, innerErrs...)
 
-					// add errors to main stream
-					errs = append(errs, innerErrs...)
-
-					// handle based on ptr/non-ptr value
-					if isPtr(sfv) {
-						dfv.Set(ndv)
-					} else {
-						dfv.Set(indirect(ndv))
-					}
-				}
-
-				continue
+				// handle based on ptr/non-ptr value
+				dfv.Set(v)
+			} else {
+				v, err := copyVal(dfv.Type(), sfv, false)
+				errs = append(errs, err...)
+				dfv.Set(v)
 			}
-
-			dfv.Set(copyVal(sfv, false))
 		}
 	}
 
@@ -729,11 +764,21 @@ func doMap(sv reflect.Value) map[string]interface{} {
 	return m
 }
 
-func copyVal(f reflect.Value, notraverse bool) reflect.Value {
+func copyVal(dt reflect.Type, f reflect.Value, notraverse bool) (reflect.Value, []error) {
 	var (
-		ptr bool
-		nf  reflect.Value
+		ptr  bool
+		nf   reflect.Value
+		errs []error
 	)
+
+	if conversionExists(f.Type(), dt) && !notraverse {
+		// handle custom converters
+		res, err := converterMap[f.Type()][dt](f)
+		if err != nil {
+			errs = append(errs, err)
+		}
+		return res, errs
+	}
 
 	// take care interface{} and its actual value
 	if isInterface(f) {
@@ -761,29 +806,43 @@ func copyVal(f reflect.Value, notraverse bool) reflect.Value {
 			nf = nf.Elem()
 		}
 	case reflect.Map:
-		nf = reflect.MakeMap(f.Type())
+		if dt.Kind() == reflect.Ptr {
+			dt = dt.Elem()
+		}
+		nf = reflect.MakeMap(dt)
 
 		for _, key := range f.MapKeys() {
 			ov := f.MapIndex(key)
 
-			cv := reflect.New(ov.Type()).Elem()
-			cv.Set(copyVal(ov, isNoTraverseType(ov)))
-
-			nf.SetMapIndex(key, cv)
+			cv := reflect.New(dt.Elem()).Elem()
+			v, err := copyVal(dt.Elem(), ov, isNoTraverseType(ov))
+			if len(err) > 0 {
+				errs = append(errs, err...)
+			} else {
+				cv.Set(v)
+				nf.SetMapIndex(key, cv)
+			}
 		}
 	case reflect.Slice:
 		if f.Type() == typeOfBytes {
 			nf = f
 		} else {
-			nf = reflect.MakeSlice(f.Type(), f.Len(), f.Cap())
+			if dt.Kind() == reflect.Ptr {
+				dt = dt.Elem()
+			}
+			nf = reflect.MakeSlice(dt, f.Len(), f.Cap())
 
 			for i := 0; i < f.Len(); i++ {
 				ov := f.Index(i)
 
-				cv := reflect.New(ov.Type()).Elem()
-				cv.Set(copyVal(ov, isNoTraverseType(ov)))
-
-				nf.Index(i).Set(cv)
+				cv := reflect.New(dt.Elem()).Elem()
+				v, err := copyVal(dt.Elem(), ov, isNoTraverseType(ov))
+				if len(err) > 0 {
+					errs = append(errs, err...)
+				} else {
+					cv.Set(v)
+					nf.Index(i).Set(cv)
+				}
 			}
 		}
 	default:
@@ -795,10 +854,10 @@ func copyVal(f reflect.Value, notraverse bool) reflect.Value {
 		o := reflect.New(nf.Type())
 		o.Elem().Set(nf)
 
-		return o
+		return o, errs
 	}
 
-	return nf
+	return nf, errs
 }
 
 func mapVal(f reflect.Value, notraverse bool) reflect.Value {
@@ -909,6 +968,10 @@ func validateCopyField(f reflect.StructField, sfv, dfv reflect.Value) error {
 		return fmt.Errorf("Field: '%v', does not exists in dst", f.Name)
 	}
 
+	if conversionExists(sfv.Type(), dfv.Type()) {
+		return nil
+	}
+
 	// check kind of src and dst, if doesn't match move on
 	if (sfv.Kind() != dfv.Kind()) && !isInterface(dfv) {
 		return fmt.Errorf("Field: '%v', src [%v] & dst [%v] kind didn't match",
@@ -921,6 +984,11 @@ func validateCopyField(f reflect.StructField, sfv, dfv reflect.Value) error {
 	// check type of src and dst, if doesn't match move on
 	sfvt := deepTypeOf(sfv)
 	dfvt := deepTypeOf(dfv)
+
+	if (sfvt.Kind() == reflect.Slice || sfvt.Kind() == reflect.Map) && sfvt.Kind() == dfvt.Kind() && conversionExists(sfvt.Elem(), dfvt.Elem()) {
+		return nil
+	}
+
 	if (sfvt != dfvt) && !isInterface(dfv) {
 		return fmt.Errorf("Field: '%v', src [%v] & dst [%v] type didn't match",
 			f.Name,

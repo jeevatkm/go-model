@@ -5,9 +5,11 @@
 package model
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -15,6 +17,62 @@ import (
 //
 // Copy test cases
 //
+
+func TestConverter(t *testing.T) {
+	type SampleStructA struct {
+		Int    int
+		String string
+		Mixed  string
+	}
+
+	type SampleStructB struct {
+		Int    int
+		String string
+		Mixed  int
+	}
+
+	AddConversion((*int)(nil), (*string)(nil), func(in reflect.Value) (reflect.Value, error) {
+		return reflect.ValueOf(strconv.FormatInt(in.Int(), 10) + "lala"), nil
+	})
+
+	src := SampleStructB{Mixed: 123, Int: 5, String: "string"}
+	dst := SampleStructA{}
+
+	errs := Copy(&dst, src)
+	if errs != nil {
+		t.Error("Error occurred while copying.")
+	}
+	assertEqual(t, "123lala", dst.Mixed)
+	assertEqual(t, 5, dst.Int)
+	assertEqual(t, "string", dst.String)
+}
+
+func TestMissingConverter(t *testing.T) {
+	type SampleStructA struct {
+		Int    int
+		String string
+		Mixed  string
+	}
+
+	type SampleStructB struct {
+		Int    int
+		String string
+		Mixed  int
+	}
+
+	RemoveConversion((*int)(nil), (*string)(nil))
+
+	src := SampleStructB{Mixed: 123, Int: 5, String: "string"}
+	dst := SampleStructA{}
+
+	errs := Copy(&dst, src)
+	if errs == nil {
+		t.Error("The conversion between int and string should have failed.")
+	}
+	assertEqual(t, "", dst.Mixed)
+	assertEqual(t, 5, dst.Int)
+	assertEqual(t, "string", dst.String)
+}
 
 func TestCopyIntegerAndIntegerPtr(t *testing.T) {
 	type SampleStruct struct {
@@ -1925,6 +1983,160 @@ func TestMissingDestField(t *testing.T) {
 	assertEqual(t, "Field: 'Z', does not exists in dst", errs[1].Error())
 }
 
+func TestNestedStructToStructMapping(t *testing.T) {
+	type C struct {
+		X string
+	}
+
+
+	type A struct {
+		V C
+	}
+
+	type B struct {
+		V C
+	}
+
+	a := A{V: C{"1"}}
+	b := B{}
+
+	Copy(&b, &a)
+
+	assertEqual(t, a.V.X, b.V.X)
+}
+
+func TestStructToStructPtrWithConverter(t *testing.T) {
+	type C struct {
+		X string
+	}
+
+	type D struct {
+		X *string
+	}
+
+	type A struct {
+		V C
+	}
+
+	type B struct {
+		V D
+	}
+
+	a := A{V: C{"1"}}
+	b := B{}
+
+	AddConversion(&C{}, &D{}, func(in reflect.Value) (reflect.Value, error) {
+		x := in.Interface().(C).X
+		d := D{X: &x}
+		return reflect.ValueOf(d), nil
+	})
+
+	Copy(&b, &a)
+
+	assertEqual(t, a.V.X, *b.V.X)
+}
+
+func TestStructWithConverter(t *testing.T) {
+
+	type C struct {
+		X string
+	}
+
+	type D struct {
+		X string
+	}
+
+	type A struct {
+		V C
+	}
+
+	type B struct {
+		V D
+	}
+
+	a := A{V: C{"1"}}
+	b := B{}
+
+	AddConversion(&C{}, &D{}, func(in reflect.Value) (reflect.Value, error) {
+		x := in.Interface().(C).X
+		d := D{X: x}
+		return reflect.ValueOf(d), nil
+	})
+
+	Copy(&b, &a)
+
+	assertEqual(t, a.V.X, b.V.X)
+}
+
+func TestSliceWithConverter(t *testing.T) {
+
+	type C struct {
+		X string
+	}
+
+	type D struct {
+		X string
+	}
+
+	type A struct {
+		V []C
+	}
+
+	type B struct {
+		V []D
+	}
+
+	a := A{V: []C{{"1"}, {"2"}}}
+	b := B{}
+
+	AddConversion(&C{}, &D{}, func(in reflect.Value) (reflect.Value, error) {
+		x := in.Interface().(C).X
+		d := D{X: x}
+		return reflect.ValueOf(d), nil
+	})
+
+	Copy(&b, &a)
+
+	assertEqual(t, a.V[0].X, b.V[0].X)
+	assertEqual(t, a.V[1].X, b.V[1].X)
+
+}
+
+func TestMapWithConverter(t *testing.T) {
+	type C struct {
+		X string
+	}
+
+	type D struct {
+		X string
+	}
+
+	type A struct {
+		M map[string]C
+	}
+
+	type B struct {
+		M map[string]D
+	}
+
+	a := A{M: map[string]C{"1": {"1"}, "2": {"2"}, "3": {"error"}}}
+	b := B{}
+
+	AddConversion(&C{}, &D{}, func(in reflect.Value) (reflect.Value, error) {
+		x := in.Interface().(C).X
+		d := D{X: x}
+		if x == "error" {
+			return reflect.ValueOf(d), errors.New("Custom conversion failed.")
+		}
+		return reflect.ValueOf(d), nil
+	})
+
+	errs := Copy(&b, &a)
+	assertEqual(t, a.M["1"].X, b.M["1"].X)
+	assertEqual(t, a.M["2"].X, b.M["2"].X)
+	assertEqual(t, "Custom conversion failed.", errs[0].Error())
+}
+
 //
 // helper test methods
 //
@@ -1988,4 +2200,103 @@ func logSrcDst(t *testing.T, src, dst interface{}) {
 
 func logIt(t *testing.T, str string, v interface{}) {
 	t.Logf("%v: %#v", str, v)
+}
+
+// Examples
+
+// Register a custom `Converter` to allow conversions from `int` to `string`.
+func ExampleAddConversion() {
+	AddConversion((*int)(nil), (*string)(nil), func(in reflect.Value) (reflect.Value, error) {
+		return reflect.ValueOf(strconv.FormatInt(in.Int(), 10)), nil
+	})
+	type StructA struct {
+		Mixed string
+	}
+
+	type StructB struct {
+		Mixed int
+	}
+	src := StructB{Mixed: 123}
+	dst := StructA{}
+
+	errs := Copy(&dst, &src)
+	if errs != nil {
+		panic(errs)
+	}
+	fmt.Printf("%v", dst)
+	// Output: {123}
+}
+
+// Register a custom `Converter` to allow conversions from `*int` to `string`.
+func ExampleAddConversion_sourcePointer() {
+	AddConversion((**int)(nil), (*string)(nil), func(in reflect.Value) (reflect.Value, error) {
+		return reflect.ValueOf(strconv.FormatInt(in.Elem().Int(), 10)), nil
+	})
+	type StructA struct {
+		Mixed string
+	}
+
+	type StructB struct {
+		Mixed *int
+	}
+	val := 123
+	src := StructB{Mixed: &val}
+	dst := StructA{}
+
+	errs := Copy(&dst, &src)
+	if errs != nil {
+		panic(errs[0])
+	}
+	fmt.Printf("%v", dst)
+	// Output: {123}
+}
+
+// Register a custom `Converter` to allow conversions from `int` to `*string`.
+func ExampleAddConversion_destinationPointer() {
+	AddConversion((*int)(nil), (**string)(nil), func(in reflect.Value) (reflect.Value, error) {
+		str := strconv.FormatInt(in.Int(), 10)
+		return reflect.ValueOf(&str), nil
+	})
+	type StructA struct {
+		Mixed *string
+	}
+
+	type StructB struct {
+		Mixed int
+	}
+	src := StructB{Mixed: 123}
+	dst := StructA{}
+
+	errs := Copy(&dst, &src)
+	if errs != nil {
+		panic(errs[0])
+	}
+	fmt.Printf("%v", *dst.Mixed)
+	// Output: 123
+}
+
+// Register a custom `Converter` to allow conversions from `int` to `*string` by passing types.
+func ExampleAddConversion_destinationPointerByType() {
+	srcType := reflect.TypeOf((*int)(nil)).Elem()
+	targetType := reflect.TypeOf((**string)(nil)).Elem()
+	AddConversionByType(srcType, targetType, func(in reflect.Value) (reflect.Value, error) {
+		str := strconv.FormatInt(in.Int(), 10)
+		return reflect.ValueOf(&str), nil
+	})
+	type StructA struct {
+		Mixed *string
+	}
+
+	type StructB struct {
+		Mixed int
+	}
+	src := StructB{Mixed: 123}
+	dst := StructA{}
+
+	errs := Copy(&dst, &src)
+	if errs != nil {
+		panic(errs[0])
+	}
+	fmt.Printf("%v", *dst.Mixed)
+	// Output: 123
 }
