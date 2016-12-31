@@ -867,8 +867,10 @@ type SampleSubInfoDeep struct {
 
 func TestCopyZeroInput(t *testing.T) {
 	errs := Copy(&SampleStruct{}, SampleStruct{})
-
 	assertEqual(t, "Source struct is empty", errs[0].Error())
+
+	errs = Copy(nil, nil)
+	assertEqual(t, "Source or Destination is nil", errs[0].Error())
 }
 
 func TestIsZero(t *testing.T) {

@@ -43,7 +43,7 @@ var (
 	Version = "0.5"
 
 	// NoTraverseTypeList keeps track of no-traverse type list at library level
-	NoTraverseTypeList map[reflect.Type]bool
+	noTraverseTypeList map[reflect.Type]bool
 
 	// Type conversion functions at library level
 	converterMap map[reflect.Type]map[reflect.Type]Converter
@@ -63,19 +63,30 @@ var (
 func AddNoTraverseType(i ...interface{}) {
 	for _, v := range i {
 		t := reflect.TypeOf(v)
-		if _, ok := NoTraverseTypeList[t]; ok {
+		if _, ok := noTraverseTypeList[t]; ok {
 
 			// already registered for no traverse, move on
 			continue
 		}
 
 		// not found, add it
-		NoTraverseTypeList[t] = true
+		noTraverseTypeList[t] = true
 	}
 }
 
-func extractType(x interface{}) reflect.Type {
-	return reflect.TypeOf(x).Elem()
+// RemoveNoTraverseType method is used to remove Go Lang type from the `NoTraverseTypeList`.
+// See also `AddNoTraverseType()` method.
+// 		model.RemoveNoTraverseType(http.Request{}, &http.Request{})
+//
+func RemoveNoTraverseType(i ...interface{}) {
+	for _, v := range i {
+		t := reflect.TypeOf(v)
+		if _, ok := noTraverseTypeList[t]; ok {
+
+			// found, delete it
+			delete(noTraverseTypeList, t)
+		}
+	}
 }
 
 // AddConversion mothod allows registering a custom `Converter` into the global `converterMap`
@@ -105,31 +116,6 @@ func RemoveConversion(in interface{}, out interface{}) {
 		return
 	}
 	delete(converterMap[srcType], targetType)
-}
-
-func conversionExists(srcType reflect.Type, destType reflect.Type) bool {
-	if _, ok := converterMap[srcType]; !ok {
-		return false
-	}
-	if _, ok := converterMap[srcType][destType]; !ok {
-		return false
-	}
-	return true
-}
-
-// RemoveNoTraverseType method is used to remove Go Lang type from the `NoTraverseTypeList`.
-// See also `AddNoTraverseType()` method.
-// 		model.RemoveNoTraverseType(http.Request{}, &http.Request{})
-//
-func RemoveNoTraverseType(i ...interface{}) {
-	for _, v := range i {
-		t := reflect.TypeOf(v)
-		if _, ok := NoTraverseTypeList[t]; ok {
-
-			// found, delete it
-			delete(NoTraverseTypeList, t)
-		}
-	}
 }
 
 // IsZero method returns `true` if all the exported fields in a given `struct`
@@ -355,6 +341,10 @@ func HasZero(s interface{}) bool {
 //
 func Copy(dst, src interface{}) []error {
 	var errs []error
+
+	if src == nil || dst == nil {
+		return append(errs, errors.New("Source or Destination is nil"))
+	}
 
 	sv := valueOf(src)
 	dv := valueOf(dst)
@@ -586,7 +576,7 @@ func Get(s interface{}, name string) (interface{}, error) {
 //			Region: "US",
 // 		}
 //
-// 		err := model.Set(src, "Region", bookLocale)
+// 		err := model.Set(&src, "Region", bookLocale)
 // 		fmt.Println("Error:", err)
 //
 // Note: Set method does not honor model tag annotations. Set simply given
@@ -633,7 +623,7 @@ func Set(s interface{}, name string, value interface{}) error {
 //
 
 func init() {
-	NoTraverseTypeList = map[reflect.Type]bool{}
+	noTraverseTypeList = map[reflect.Type]bool{}
 	converterMap = map[reflect.Type]map[reflect.Type]Converter{}
 
 	// Default NoTraverseTypeList

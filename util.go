@@ -25,7 +25,7 @@ func isNoTraverseType(v reflect.Value) bool {
 
 	t := deepTypeOf(v)
 
-	if _, ok := NoTraverseTypeList[t]; ok {
+	if _, ok := noTraverseTypeList[t]; ok {
 		return true
 	}
 
@@ -168,4 +168,18 @@ func isStruct(v reflect.Value) bool {
 
 func isInterface(v reflect.Value) bool {
 	return v.Kind() == reflect.Interface
+}
+
+func extractType(x interface{}) reflect.Type {
+	return reflect.TypeOf(x).Elem()
+}
+
+func conversionExists(srcType reflect.Type, destType reflect.Type) bool {
+	if _, ok := converterMap[srcType]; !ok {
+		return false
+	}
+	if _, ok := converterMap[srcType][destType]; !ok {
+		return false
+	}
+	return true
 }
