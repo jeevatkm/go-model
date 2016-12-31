@@ -737,24 +737,6 @@ func TestCopyStructTypeDiffOnLevel1Interface(t *testing.T) {
 	assertEqual(t, src.Level1.Name, dst.Level1.(SampleLevelSrc).Name)
 }
 
-func TestCopyStructElementIsNotValidInDst(t *testing.T) {
-	type Source struct {
-		Name string
-		Year int
-	}
-
-	type Destination struct {
-		Name string
-	}
-
-	src := Source{Year: 2016}
-	dst := Destination{Name: "Value is gonna disappear"}
-
-	errs := Copy(&dst, src)
-
-	assertEqual(t, "Field: 'Year', does not exists in dst", errs[0].Error())
-}
-
 func TestCopyStructZeroValToDst(t *testing.T) {
 	type Source struct {
 		Name string
@@ -1896,29 +1878,6 @@ func TestKind(t *testing.T) {
 	assertEqual(t, true, reflect.Invalid == kind6)
 }
 
-func TestMissingDestField(t *testing.T) {
-
-	type C struct {
-	}
-
-	type A struct {
-		X string
-		Y string
-		Z C
-	}
-
-	type B struct {
-		X string
-	}
-
-	a := A{X: "X", Y: "Y", Z: C{}}
-	b := B{}
-	errs := Copy(&b, &a)
-	assertEqual(t, 2, len(errs))
-	assertEqual(t, "Field: 'Y', does not exists in dst", errs[0].Error())
-	assertEqual(t, "Field: 'Z', does not exists in dst", errs[1].Error())
-}
-
 func TestNestedStructToStructMapping(t *testing.T) {
 	type C struct {
 		X string
@@ -2153,6 +2112,30 @@ func TestSetField(t *testing.T) {
 	// scenario 7 different type
 	err = Set(&src, "String", 30)
 	assertEqual(t, "Field: String, type/kind did not match", err.Error())
+}
+
+func TestImprovedCopy(t *testing.T) {
+	type DomainObject struct {
+		Name    string
+		Address string
+		Phone   string
+	}
+
+	type LoginGreeterDTO struct {
+		Name string
+	}
+
+	src := DomainObject{
+		Name:    "go-model",
+		Address: "123 sample street",
+		Phone:   "000-000-0000",
+	}
+
+	dst := LoginGreeterDTO{}
+
+	errs := Copy(&dst, src)
+	assertEqual(t, 0, len(errs))
+	assertEqual(t, "go-model", dst.Name)
 }
 
 //

@@ -10,6 +10,8 @@ import (
 	"reflect"
 )
 
+var errFieldNotExists = errors.New("Field does not exists")
+
 func isFieldZero(f reflect.Value) bool {
 	// zero value of the given field
 	// For example: reflect.Zero(reflect.TypeOf(42)) returns a Value with Kind Int and value 0
@@ -35,7 +37,8 @@ func isNoTraverseType(v reflect.Value) bool {
 func validateCopyField(f reflect.StructField, sfv, dfv reflect.Value) error {
 	// check dst field is exists, if not valid move on
 	if !dfv.IsValid() {
-		return fmt.Errorf("Field: '%v', does not exists in dst", f.Name)
+		return errFieldNotExists
+		//return fmt.Errorf("Field does not exists in dst", f.Name)
 	}
 
 	if conversionExists(sfv.Type(), dfv.Type()) {

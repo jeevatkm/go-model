@@ -680,7 +680,9 @@ func doCopy(dv, sv reflect.Value) []error {
 		// validate field - exists in dst, kind and type
 		err := validateCopyField(f, sfv, dfv)
 		if err != nil {
-			errs = append(errs, err)
+			if err != errFieldNotExists {
+				errs = append(errs, err)
+			}
 
 			continue
 		}
