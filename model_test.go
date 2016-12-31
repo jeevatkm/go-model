@@ -2070,6 +2070,89 @@ func TestMapWithConverter(t *testing.T) {
 	assertEqual(t, "Custom conversion failed.", errs[0].Error())
 }
 
+func TestGetField(t *testing.T) {
+	type SampleStruct struct {
+		Int    int
+		String string
+	}
+
+	src := SampleStruct{
+		Int:    10,
+		String: "go-model",
+	}
+
+	// scenario 1 int
+	value1, err1 := Get(src, "Int")
+	assertEqual(t, 10, value1)
+	assertError(t, err1)
+
+	// scenario 2 string
+	value2, err2 := Get(src, "String")
+	assertEqual(t, "go-model", value2)
+	assertError(t, err2)
+
+	// scenario 3 field not exists
+	_, err := Get(src, "NotExists")
+	assertEqual(t, "Field: 'NotExists', does not exists", err.Error())
+
+	// scenario 4 struct is nil
+	_, err = Get(nil, "Int")
+	assertEqual(t, "Invalid input <nil>", err.Error())
+}
+
+func TestSetField(t *testing.T) {
+	type SampleStruct struct {
+		Int    int
+		String string
+	}
+
+	src := SampleStruct{
+		Int:    10,
+		String: "go-model",
+	}
+
+	// scenario 1 direct value int
+	err := Set(&src, "Int", 20)
+	assertError(t, err)
+
+	value1, err1 := Get(src, "Int")
+	assertEqual(t, 20, value1)
+	assertError(t, err1)
+
+	// scenario 2 direct value string
+	err = Set(&src, "String", "go-model set")
+	assertError(t, err)
+
+	value2, err2 := Get(src, "String")
+	assertEqual(t, "go-model set", value2)
+	assertError(t, err2)
+
+	// scenario 3 value is pointer
+	newVal := "go-model set ptr"
+	err = Set(&src, "String", &newVal)
+	assertError(t, err)
+
+	value3, err3 := Get(src, "String")
+	assertEqual(t, "go-model set ptr", value3)
+	assertError(t, err3)
+
+	// scenario 4 struct is not pointer
+	err = Set(src, "Int", 10)
+	assertEqual(t, "Destination struct is not a pointer", err.Error())
+
+	// scenario 5 field not exists
+	err = Set(&src, "NotExists", "test value")
+	assertEqual(t, "Field: 'NotExists', does not exists", err.Error())
+
+	// scenario 6 struct is nil
+	err = Set(nil, "Int", 30)
+	assertEqual(t, "Invalid input <nil>", err.Error())
+
+	// scenario 7 different type
+	err = Set(&src, "String", 30)
+	assertEqual(t, "Field: String, type/kind did not match", err.Error())
+}
+
 //
 // helper test methods
 //

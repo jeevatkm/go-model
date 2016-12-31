@@ -539,6 +539,95 @@ func Kind(s interface{}, name string) (reflect.Kind, error) {
 	return fv.Type().Kind(), nil
 }
 
+// Get method returns a field value from `struct` by field name.
+// 		Example:
+//
+// 		src := SampleStruct {
+// 			BookCount      int         `json:"-"`
+// 			BookCode       string      `json:"-"`
+// 			ArchiveInfo    BookArchive `json:"archive_info,omitempty"`
+// 			Region         BookLocale  `json:"region,omitempty"`
+// 		}
+//
+// 		value, err := model.Get(src, "ArchiveInfo")
+// 		fmt.Println("Field Value:", value)
+// 		fmt.Println("Error:", err)
+//
+// Note: Get method does not honor model tag annotations. Get simply access
+// value on exported fields.
+//
+func Get(s interface{}, name string) (interface{}, error) {
+	sv, err := structValue(s)
+	if err != nil {
+		return nil, err
+	}
+
+	fv, err := getField(sv, name)
+	if err != nil {
+		return nil, err
+	}
+
+	return fv.Interface(), nil
+}
+
+// Set method sets a value into field on struct by field name.
+// 		Example:
+//
+// 		src := SampleStruct {
+// 			BookCount      int         `json:"-"`
+// 			BookCode       string      `json:"-"`
+// 			ArchiveInfo    BookArchive `json:"archive_info,omitempty"`
+// 			Region         BookLocale  `json:"region,omitempty"`
+// 		}
+//
+// 		bookLocale := BookLocale {
+//			Locale: "en-US",
+//			Language: "en",
+//			Region: "US",
+// 		}
+//
+// 		err := model.Set(src, "Region", bookLocale)
+// 		fmt.Println("Error:", err)
+//
+// Note: Set method does not honor model tag annotations. Set simply given
+// value by field name on exported fields.
+//
+func Set(s interface{}, name string, value interface{}) error {
+	if s == nil {
+		return errors.New("Invalid input <nil>")
+	}
+
+	sv := valueOf(s)
+	if isPtr(sv) {
+		sv = sv.Elem()
+	} else {
+		return errors.New("Destination struct is not a pointer")
+	}
+
+	fv, err := getField(sv, name)
+	if err != nil {
+		return err
+	}
+
+	if !fv.CanSet() {
+		return fmt.Errorf("Field: %v, cannot be settable", name)
+	}
+
+	tv := valueOf(value)
+	if isPtr(tv) {
+		tv = tv.Elem()
+	}
+
+	if (fv.Kind() != tv.Kind()) || fv.Type() != tv.Type() {
+		return fmt.Errorf("Field: %v, type/kind did not match", name)
+	}
+
+	// assign the given value
+	fv.Set(tv)
+
+	return nil
+}
+
 //
 // go-model init
 //
@@ -884,164 +973,4 @@ func mapVal(f reflect.Value, notraverse bool) reflect.Value {
 	}
 
 	return nf
-}
-
-func isFieldZero(f reflect.Value) bool {
-	// zero value of the given field
-	// For example: reflect.Zero(reflect.TypeOf(42)) returns a Value with Kind Int and value 0
-	zero := reflect.Zero(f.Type()).Interface()
-
-	return reflect.DeepEqual(f.Interface(), zero)
-}
-
-func isNoTraverseType(v reflect.Value) bool {
-	if !isStruct(v) {
-		return false
-	}
-
-	t := deepTypeOf(v)
-
-	if _, ok := NoTraverseTypeList[t]; ok {
-		return true
-	}
-
-	return false
-}
-
-func validateCopyField(f reflect.StructField, sfv, dfv reflect.Value) error {
-	// check dst field is exists, if not valid move on
-	if !dfv.IsValid() {
-		return fmt.Errorf("Field: '%v', does not exists in dst", f.Name)
-	}
-
-	if conversionExists(sfv.Type(), dfv.Type()) {
-		return nil
-	}
-
-	// check kind of src and dst, if doesn't match move on
-	if (sfv.Kind() != dfv.Kind()) && !isInterface(dfv) {
-		return fmt.Errorf("Field: '%v', src [%v] & dst [%v] kind didn't match",
-			f.Name,
-			sfv.Kind(),
-			dfv.Kind(),
-		)
-	}
-
-	// check type of src and dst, if doesn't match move on
-	sfvt := deepTypeOf(sfv)
-	dfvt := deepTypeOf(dfv)
-
-	if (sfvt.Kind() == reflect.Slice || sfvt.Kind() == reflect.Map) && sfvt.Kind() == dfvt.Kind() && conversionExists(sfvt.Elem(), dfvt.Elem()) {
-		return nil
-	}
-
-	if (sfvt != dfvt) && !isInterface(dfv) {
-		return fmt.Errorf("Field: '%v', src [%v] & dst [%v] type didn't match",
-			f.Name,
-			sfvt,
-			dfvt,
-		)
-	}
-
-	return nil
-}
-
-func modelFields(v reflect.Value) []reflect.StructField {
-	v = indirect(v)
-	t := v.Type()
-
-	var fs []reflect.StructField
-
-	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
-
-		// Only exported fields of a struct can be accessed.
-		// So, non-exported fields will be ignored
-		// TODO Go 1.6 changes -> f.PkgPath != "" && !f.Anonymous
-		if f.PkgPath == "" {
-			fs = append(fs, f)
-		}
-	}
-
-	return fs
-}
-
-func structValue(s interface{}) (reflect.Value, error) {
-	if s == nil {
-		return reflect.Value{}, errors.New("Invalid input <nil>")
-	}
-
-	sv := indirect(valueOf(s))
-
-	if !isStruct(sv) {
-		return reflect.Value{}, errors.New("Input is not a struct")
-	}
-
-	return sv, nil
-}
-
-func getField(sv reflect.Value, name string) (reflect.Value, error) {
-	field := sv.FieldByName(name)
-	if !field.IsValid() {
-		return reflect.Value{}, fmt.Errorf("Field: '%v', does not exists", name)
-	}
-
-	return field, nil
-}
-
-func zeroOf(f reflect.Value) reflect.Value {
-
-	// get zero value for type
-	ftz := reflect.Zero(f.Type())
-
-	if f.Kind() == reflect.Ptr {
-		return ftz
-	}
-
-	// if not a pointer then get zero value for interface
-	return indirect(valueOf(ftz.Interface()))
-}
-
-func deepTypeOf(v reflect.Value) reflect.Type {
-	if isInterface(v) {
-
-		// check zero or not
-		if !isFieldZero(v) {
-			v = valueOf(v.Interface())
-		}
-
-	}
-
-	return v.Type()
-}
-
-func valueOf(i interface{}) reflect.Value {
-	return reflect.ValueOf(i)
-}
-
-func indirect(v reflect.Value) reflect.Value {
-	return reflect.Indirect(v)
-}
-
-func isPtr(v reflect.Value) bool {
-	return v.Kind() == reflect.Ptr
-}
-
-func isStruct(v reflect.Value) bool {
-	if isInterface(v) {
-		v = valueOf(v.Interface())
-	}
-
-	pv := indirect(v)
-
-	// struct is not yet initialized
-	if pv.Kind() == reflect.Invalid {
-		return false
-	}
-
-	return pv.Kind() == reflect.Struct
-}
-
-func isInterface(v reflect.Value) bool {
-	return v.Kind() == reflect.Interface
 }
