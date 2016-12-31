@@ -1,14 +1,77 @@
-// Copyright (c) 2016 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
-// resty source code and usage is governed by a MIT style
+// Copyright (c) 2016 Jeevanandam M (https://github.com/jeevatkm), All rights reserved.
+// go-model source code and usage is governed by a MIT style
 // license that can be found in the LICENSE file.
 
 package model
 
-import "strings"
+import (
+	"fmt"
+	"reflect"
+	"strings"
+)
 
 type tag struct {
 	Name    string
 	Options string
+}
+
+// Tag method returns the exported struct field `Tag` value from the given struct.
+// 		Example:
+//
+// 		src := SampleStruct {
+// 			BookCount      int         `json:"-"`
+// 			BookCode       string      `json:"-"`
+// 			ArchiveInfo    BookArchive `json:"archive_info,omitempty"`
+// 			Region         BookLocale  `json:"region,omitempty"`
+// 		}
+//
+// 		tag, _ := model.Tag(src, "ArchiveInfo")
+// 		fmt.Println("Tag Value:", tag.Get("json"))
+//
+// 		// Output:
+// 		Tag Value: archive_info,omitempty
+//
+func Tag(s interface{}, name string) (reflect.StructTag, error) {
+	sv, err := structValue(s)
+	if err != nil {
+		return "", err
+	}
+
+	fv, ok := sv.Type().FieldByName(name)
+	if !ok {
+		return "", fmt.Errorf("Field: '%v', does not exists", name)
+	}
+
+	return fv.Tag, nil
+}
+
+// Tags method returns the exported struct fields `Tag` value from the given struct.
+// 		Example:
+//
+// 		src := SampleStruct {
+// 			BookCount      int         `json:"-"`
+// 			BookCode       string      `json:"-"`
+// 			ArchiveInfo    BookArchive `json:"archive_info,omitempty"`
+// 			Region         BookLocale  `json:"region,omitempty"`
+// 		}
+//
+// 		tags, _ := model.Tags(src)
+// 		fmt.Println("Tags:", tags)
+//
+func Tags(s interface{}) (map[string]reflect.StructTag, error) {
+	sv, err := structValue(s)
+	if err != nil {
+		return nil, err
+	}
+
+	tags := map[string]reflect.StructTag{}
+
+	fields := modelFields(sv)
+	for _, f := range fields {
+		tags[f.Name] = f.Tag
+	}
+
+	return tags, nil
 }
 
 func newTag(modelTag string) *tag {

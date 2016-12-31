@@ -1,5 +1,5 @@
-// Copyright (c) 2016 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
-// resty source code and usage is governed by a MIT style
+// Copyright (c) 2016 Jeevanandam M (https://github.com/jeevatkm), All rights reserved.
+// go-model source code and usage is governed by a MIT style
 // license that can be found in the LICENSE file.
 
 // Package model provides robust and easy-to-use model mapper and utility methods for Go.
@@ -94,7 +94,7 @@ func AddConversionByType(srcType reflect.Type, targetType reflect.Type, converte
 	converterMap[srcType][targetType] = converter
 }
 
-// Remove registered conversions
+// RemoveConversion registered conversions
 func RemoveConversion(in interface{}, out interface{}) {
 	srcType := extractType(in)
 	targetType := extractType(out)
@@ -512,65 +512,6 @@ func Fields(s interface{}) ([]reflect.StructField, error) {
 	return modelFields(sv), nil
 }
 
-// Tag method returns the exported struct field `Tag` value from the given struct.
-// 		Example:
-//
-// 		src := SampleStruct {
-// 			BookCount      int         `json:"-"`
-// 			BookCode       string      `json:"-"`
-// 			ArchiveInfo    BookArchive `json:"archive_info,omitempty"`
-// 			Region         BookLocale  `json:"region,omitempty"`
-// 		}
-//
-// 		tag, _ := model.Tag(src, "ArchiveInfo")
-// 		fmt.Println("Tag Value:", tag.Get("json"))
-//
-// 		// Output:
-// 		Tag Value: archive_info,omitempty
-//
-func Tag(s interface{}, name string) (reflect.StructTag, error) {
-	sv, err := structValue(s)
-	if err != nil {
-		return "", err
-	}
-
-	fv, ok := sv.Type().FieldByName(name)
-	if !ok {
-		return "", fmt.Errorf("Field: '%v', does not exists", name)
-	}
-
-	return fv.Tag, nil
-}
-
-// Tags method returns the exported struct fields `Tag` value from the given struct.
-// 		Example:
-//
-// 		src := SampleStruct {
-// 			BookCount      int         `json:"-"`
-// 			BookCode       string      `json:"-"`
-// 			ArchiveInfo    BookArchive `json:"archive_info,omitempty"`
-// 			Region         BookLocale  `json:"region,omitempty"`
-// 		}
-//
-// 		tags, _ := model.Tags(src)
-// 		fmt.Println("Tags:", tags)
-//
-func Tags(s interface{}) (map[string]reflect.StructTag, error) {
-	sv, err := structValue(s)
-	if err != nil {
-		return nil, err
-	}
-
-	tags := map[string]reflect.StructTag{}
-
-	fields := modelFields(sv)
-	for _, f := range fields {
-		tags[f.Name] = f.Tag
-	}
-
-	return tags, nil
-}
-
 // Kind method returns `reflect.Kind` for the given field name from the `struct`.
 // 		Example:
 //
@@ -585,7 +526,12 @@ func Tags(s interface{}) (map[string]reflect.StructTag, error) {
 // 		fmt.Println("Field kind:", fieldKind)
 //
 func Kind(s interface{}, name string) (reflect.Kind, error) {
-	fv, err := getField(s, name)
+	sv, err := structValue(s)
+	if err != nil {
+		return reflect.Invalid, err
+	}
+
+	fv, err := getField(sv, name)
 	if err != nil {
 		return reflect.Invalid, err
 	}
@@ -1034,12 +980,7 @@ func structValue(s interface{}) (reflect.Value, error) {
 	return sv, nil
 }
 
-func getField(s interface{}, name string) (reflect.Value, error) {
-	sv, err := structValue(s)
-	if err != nil {
-		return reflect.Value{}, err
-	}
-
+func getField(sv reflect.Value, name string) (reflect.Value, error) {
 	field := sv.FieldByName(name)
 	if !field.IsValid() {
 		return reflect.Value{}, fmt.Errorf("Field: '%v', does not exists", name)
@@ -1095,8 +1036,6 @@ func isStruct(v reflect.Value) bool {
 
 	// struct is not yet initialized
 	if pv.Kind() == reflect.Invalid {
-		// vt := deepTypeOf(v)
-		// return vt.Elem().Kind() == reflect.Struct
 		return false
 	}
 
