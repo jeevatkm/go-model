@@ -2,7 +2,7 @@
 
 Robust & Easy to use model mapper and utility methods for Go `struct`. Typical methods increase productivity and make Go development more fun :smile:
 
-***v0.4 released and tagged on May 19, 2016***
+***v0.5 [released](https://github.com/jeevatkm/go-model/releases/latest) and tagged on Jan 02, 2017***
 
 go-model tested with Go `v1.2` and above.
 
@@ -17,6 +17,7 @@ go-model library provides [handy methods](#supported-methods) to process `struct
 * Get struct field `reflect.Kind` by field name
 * Get all the struct field tags (`reflect.StructTag`) or selectively by field name
 * Get all `reflect.StructField` for given struct instance
+* Get or Set by individual field name on struct
 * Add global no traverse type to the list or use `notraverse` option in the struct field
 * Options to name map key, omit empty fields, and instruct not to traverse with struct/map/slice
 * Conversions between mixed non-pointer types
@@ -56,6 +57,8 @@ import (
 * Kind - [usage](#kind-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#Kind)
 * Tag - [usage](#tag-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#Tag)
 * Tags - [usage](#tags-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#Tags)
+* Get - [usage](#get-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#Get)
+* Set - [usage](#set-method), [godoc](https://godoc.org/github.com/jeevatkm/go-model#Set)
 * AddNoTraverseType - [usage](#addnotraversetype--removenotraversetype-methods), [godoc](https://godoc.org/github.com/jeevatkm/go-model#AddNoTraverseType)
 * RemoveNoTraverseType - [usage](#addnotraversetype--removenotraversetype-methods), [godoc](https://godoc.org/github.com/jeevatkm/go-model#RemoveNoTraverseType)
 * AddConversion - [usage](#addconversion--removeconversion-methods), [godoc](https://godoc.org/github.com/jeevatkm/go-model#AddConversion)
@@ -200,6 +203,33 @@ tags, _ := model.Tags(src)
 fmt.Println("Tags:", tags)
 ```
 
+#### Get Method
+I want to get value by field name on my `struct`. Yes, it is easy to get it.
+```go
+src := SampleStruct {
+	BookCount: 100,
+	BookCode:  "GHT67HH00",
+}
+
+value, _ := model.Get(src, "BookCode")
+fmt.Println("Value:", value)
+
+// Output:
+Value: GHT67HH00
+```
+
+#### Set Method
+I want to set value by field name on my `struct`. Yes, it is easy to get it.
+```go
+src := SampleStruct {
+	BookCount: 100,
+	BookCode:  "GHT67HH00",
+}
+
+err := model.Set(&src, "BookCount", 200)
+fmt.Println("Error:", err)
+```
+
 #### AddNoTraverseType & RemoveNoTraverseType Methods
 There are scenarios, where you want the object values but not to traverse/look inside the struct object. Use `notraverse` option in the model tag for those fields or Add it `NoTraverseTypeList`. Customize it as per your need.
 
@@ -214,7 +244,7 @@ model.AddNoTraverseType(time.Location{}, &time.Location{})
 model.RemoveNoTraverseType(time.Location{}, &time.Location{})
 ```
 
-#### AddConversion & RemoveConversion Method
+#### AddConversion & RemoveConversion Methods
 
 This example registers a custom conversion from the `int` to the `string` type.
 ```go
