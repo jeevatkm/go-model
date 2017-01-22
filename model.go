@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Jeevanandam M (https://github.com/jeevatkm), All rights reserved.
+// Copyright (c) Jeevanandam M. (https://github.com/jeevatkm).
 // go-model source code and usage is governed by a MIT style
 // license that can be found in the LICENSE file.
 
@@ -40,7 +40,7 @@ const (
 
 var (
 	// Version # of go-model library
-	Version = "0.5"
+	Version = "0.6"
 
 	// NoTraverseTypeList keeps track of no-traverse type list at library level
 	noTraverseTypeList map[reflect.Type]bool
