@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Jeevanandam M (https://github.com/jeevatkm), All rights reserved.
+// Copyright (c) Jeevanandam M. (https://github.com/jeevatkm).
 // go-model source code and usage is governed by a MIT style
 // license that can be found in the LICENSE file.
 
@@ -469,7 +469,7 @@ func TestCopyStructEmbededAndAttribute(t *testing.T) {
 	}
 
 	src := SampleStruct{
-		SampleSubInfo:          SampleSubInfo{Name: "This embeded struct", Year: 2016},
+		SampleSubInfo:          SampleSubInfo{Name: "This embedded struct", Year: 2016},
 		Level1Struct:           SampleSubInfo{Name: "This level 1 struct", Year: 2015},
 		Level1StructPtr:        &SampleSubInfo{Name: "This level 1 ptr struct", Year: 2014},
 		Level1StructNoTraverse: &SampleSubInfo{Name: "This nested no traverse struct", Year: 2013},
@@ -514,7 +514,7 @@ func TestCopyStructEmbededAndAttributeDstPtr(t *testing.T) {
 	}
 
 	src := SampleStruct{
-		SampleSubInfo:          SampleSubInfo{Name: "This embeded struct", Year: 2016},
+		SampleSubInfo:          SampleSubInfo{Name: "This embedded struct", Year: 2016},
 		Level1Struct:           SampleSubInfo{Name: "This level 1 struct", Year: 2015},
 		Level1StructPtr:        &SampleSubInfo{Name: "This level 1 ptr struct", Year: 2014},
 		Level1StructNoTraverse: &SampleSubInfo{Name: "This nested no traverse struct", Year: 2013},
@@ -564,7 +564,7 @@ func TestCopyStructEmbededAndAttributeMakeZeroInDst(t *testing.T) {
 	src := SampleStruct{CreatedTime: time.Now()}
 
 	dst := SampleStruct{
-		SampleSubInfo:          SampleSubInfo{Name: "This embeded struct", Year: 2016},
+		SampleSubInfo:          SampleSubInfo{Name: "This embedded struct", Year: 2016},
 		Level1Struct:           SampleSubInfo{Name: "This level 1 struct", Year: 2015},
 		Level1StructPtr:        &SampleSubInfo{Name: "This level 1 ptr struct", Year: 2014},
 		Level1StructNoTraverse: &SampleSubInfo{Name: "This nested no traverse struct", Year: 2013},
@@ -604,7 +604,7 @@ func TestCopyStructEmbededAndAttributeOmitEmpty(t *testing.T) {
 	src := SampleStruct{CreatedTime: time.Now()}
 
 	dst := SampleStruct{
-		SampleSubInfo:          SampleSubInfo{Name: "This embeded struct", Year: 2016},
+		SampleSubInfo:          SampleSubInfo{Name: "This embedded struct", Year: 2016},
 		Level1Struct:           SampleSubInfo{Name: "This level 1 struct", Year: 2015},
 		Level1StructPtr:        &SampleSubInfo{Name: "This level 1 ptr struct", Year: 2014},
 		Level1StructNoTraverse: &SampleSubInfo{Name: "This nested no traverse struct", Year: 2013},
@@ -621,7 +621,7 @@ func TestCopyStructEmbededAndAttributeOmitEmpty(t *testing.T) {
 	assertEqual(t, true, src.CreatedTime == dst.CreatedTime)
 
 	assertEqual(t, 2016, dst.Year)
-	assertEqual(t, "This embeded struct", dst.Name)
+	assertEqual(t, "This embedded struct", dst.Name)
 
 	assertEqual(t, 2013, dst.Level1StructNoTraverse.Year)
 	assertEqual(t, "This nested no traverse struct", dst.Level1StructNoTraverse.Name)
@@ -897,7 +897,7 @@ func TestNonZeroCheck(t *testing.T) {
 	}
 
 	if IsZero(SampleStruct{SampleSubInfo: SampleSubInfo{Year: 2010}}) {
-		t.Error("SampleStruct embeded struct - supposed to be non-zero")
+		t.Error("SampleStruct embedded struct - supposed to be non-zero")
 	}
 }
 
@@ -916,7 +916,7 @@ func TestNonHasZeroCheck(t *testing.T) {
 	}
 
 	src1 := SampleStruct{
-		SampleSubInfo:          SampleSubInfo{Name: "This embeded struct", Year: 2016},
+		SampleSubInfo:          SampleSubInfo{Name: "This embedded struct", Year: 2016},
 		Level1Struct:           SampleSubInfo{Name: "This level 1 struct", Year: 2015},
 		Level1StructPtr:        &SampleSubInfo{Name: "This level 1 ptr struct", Year: 2014},
 		Level1StructNoTraverse: &SampleSubInfo{Name: "This nested no traverse struct", Year: 2013},
@@ -928,7 +928,7 @@ func TestNonHasZeroCheck(t *testing.T) {
 	}
 
 	src2 := SampleStruct{
-		SampleSubInfo:          SampleSubInfo{Name: "This embeded struct", Year: 2016},
+		SampleSubInfo:          SampleSubInfo{Name: "This embedded struct", Year: 2016},
 		Level1Struct:           SampleSubInfo{Name: "This level 1 struct", Year: 2015},
 		Level1StructPtr:        &SampleSubInfo{Name: "This level 1 ptr struct", Year: 2014},
 		Level1StructNoTraverse: &SampleSubInfo{Name: "This nested no traverse struct", Year: 2013},
@@ -942,7 +942,7 @@ func TestNonHasZeroCheck(t *testing.T) {
 		Level1Struct:           SampleSubInfo{Name: "This level 1 struct", Year: 2015},
 		Level1StructPtr:        &SampleSubInfo{Name: "This level 1 ptr struct", Year: 2014},
 		Level1StructNoTraverse: &SampleSubInfo{Name: "This nested no traverse struct", Year: 2013},
-		SampleSubInfo:          SampleSubInfo{Name: "This embeded struct"},
+		SampleSubInfo:          SampleSubInfo{Name: "This embedded struct"},
 	}
 
 	if !HasZero(src3) {
@@ -1548,7 +1548,7 @@ func TestMapStructEmbededAndAttribute(t *testing.T) {
 
 	timePtr := time.Now()
 	src := SampleStruct{
-		SampleSubInfo:             SampleSubInfo{Name: "This embeded struct", Year: 2016},
+		SampleSubInfo:             SampleSubInfo{Name: "This embedded struct", Year: 2016},
 		Level1Struct:              SampleSubInfo{Name: "This level 1 struct", Year: 2015},
 		Level1StructNoTraverse:    SampleSubInfo{Name: "This level 1 struct no traverse", Year: 2014},
 		Level1StructPtr:           &SampleSubInfo{Name: "This level 1 struct pointer", Year: 2013},
@@ -1570,7 +1570,7 @@ func TestMapStructEmbededAndAttribute(t *testing.T) {
 	// Field: Name
 	value1, found1 := result["Name"]
 	assertEqual(t, true, found1)
-	assertEqual(t, "This embeded struct", value1.(string))
+	assertEqual(t, "This embedded struct", value1.(string))
 
 	// Field: year
 	value2, found2 := result["year"]
@@ -2152,16 +2152,6 @@ func assertEqual(t *testing.T, e, g interface{}) (r bool) {
 	r = compare(e, g)
 	if !r {
 		t.Errorf("Expected [%v], got [%v]", e, g)
-	}
-
-	return
-}
-
-func assertNotEqual(t *testing.T, e, g interface{}) (r bool) {
-	if compare(e, g) {
-		t.Errorf("Expected [%v], got [%v]", e, g)
-	} else {
-		r = true
 	}
 
 	return
