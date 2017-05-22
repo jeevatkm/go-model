@@ -1,8 +1,8 @@
-# go-model [![Build Status](https://travis-ci.org/jeevatkm/go-model.svg?branch=master)](https://travis-ci.org/jeevatkm/go-model) [![codecov](https://codecov.io/gh/jeevatkm/go-model/branch/master/graph/badge.svg)](https://codecov.io/gh/jeevatkm/go-model/branch/master)  [![GoReport](https://goreportcard.com/badge/jeevatkm/go-model)](https://goreportcard.com/report/jeevatkm/go-model) [![GoDoc](https://godoc.org/github.com/jeevatkm/go-model?status.svg)](https://godoc.org/github.com/jeevatkm/go-model) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+# go-model [![Stability: Sustained](https://masterminds.github.io/stability/sustained.svg)](https://masterminds.github.io/stability/sustained.html) [![Build Status](https://travis-ci.org/jeevatkm/go-model.svg?branch=master)](https://travis-ci.org/jeevatkm/go-model) [![codecov](https://codecov.io/gh/jeevatkm/go-model/branch/master/graph/badge.svg)](https://codecov.io/gh/jeevatkm/go-model/branch/master)  [![GoReport](https://goreportcard.com/badge/jeevatkm/go-model)](https://goreportcard.com/report/jeevatkm/go-model) [![Version](https://img.shields.io/badge/version-1.0-blue.svg)](https://github.com/jeevatkm/go-model/releases/latest)  [![GoDoc](https://godoc.org/github.com/jeevatkm/go-model?status.svg)](https://godoc.org/github.com/jeevatkm/go-model) [![License](https://img.shields.io/github/license/jeevatkm/go-model.svg)](LICENSE)
 
 Robust & Easy to use model mapper and utility methods for Go `struct`. Typical methods increase productivity and make Go development more fun :smile:
 
-***v0.5 [released](https://github.com/jeevatkm/go-model/releases/latest) and tagged on Jan 02, 2017***
+***v1.0 [released](https://github.com/jeevatkm/go-model/releases/latest) and tagged on May 22, 2017***
 
 go-model tested with Go `v1.2` and above.
 
@@ -20,29 +20,37 @@ go-model library provides [handy methods](#supported-methods) to process `struct
 * Get or Set by individual field name on struct
 * Add global no traverse type to the list or use `notraverse` option in the struct field
 * Options to name map key, omit empty fields, and instruct not to traverse with struct/map/slice
-* Conversions between mixed non-pointer types
+* Conversions between mixed non-pointer types - add custom conversation method, refer to usage
 
 ## Installation
 
-#### Stable - Release Version
+#### Stable Version - Production Ready
 Please refer section [Versioning](#versioning) for detailed info.
 
 ```sh
 # install the library
-go get -u gopkg.in/jeevatkm/go-model.v0
+go get -u gopkg.in/jeevatkm/go-model.v1
 ```
 
-#### Latest
+#### Latest Version - Development Edge
 ```sh
 # install the latest & greatest library
 go get -u github.com/jeevatkm/go-model
 ```
 
+## It might interest you :)
+
+go-model author also published following projects to Go Community.
+
+  * [aah framework](https://aahframework.org) - Web and API framework for Go.
+  * [go-resty](https://github.com/go-resty/resty) - Simple HTTP and REST client for Go.
+
+
 ## Usage
 Import go-model into your code and refer it as `model`. Have a look on [model test cases](model_test.go) to know more possibilities.
 ```go
 import (
-  "gopkg.in/jeevatkm/go-model.v0"
+  "gopkg.in/jeevatkm/go-model.v1"
 )
 ```
 
