@@ -27,11 +27,8 @@ func isNoTraverseType(v reflect.Value) bool {
 
 	t := deepTypeOf(v)
 
-	if _, ok := noTraverseTypeList[t]; ok {
-		return true
-	}
-
-	return false
+	_, found := noTraverseTypeList[t]
+	return found
 }
 
 func validateCopyField(f reflect.StructField, sfv, dfv reflect.Value) error {
@@ -84,7 +81,6 @@ func modelFields(v reflect.Value) []reflect.StructField {
 
 		// Only exported fields of a struct can be accessed.
 		// So, non-exported fields will be ignored
-		// TODO Go 1.6 changes -> f.PkgPath != "" && !f.Anonymous
 		if f.PkgPath == "" {
 			fs = append(fs, f)
 		}

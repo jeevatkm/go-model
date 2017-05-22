@@ -37,12 +37,11 @@ func Tag(s interface{}, name string) (reflect.StructTag, error) {
 		return "", err
 	}
 
-	fv, ok := sv.Type().FieldByName(name)
-	if !ok {
-		return "", fmt.Errorf("Field: '%v', does not exists", name)
+	if fv, ok := sv.Type().FieldByName(name); ok {
+		return fv.Tag, nil
 	}
 
-	return fv.Tag, nil
+	return "", fmt.Errorf("Field: '%v', does not exists", name)
 }
 
 // Tags method returns the exported struct fields `Tag` value from the given struct.
