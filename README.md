@@ -38,11 +38,11 @@ go get -u gopkg.in/jeevatkm/go-model.v1
 go get -u github.com/jeevatkm/go-model
 ```
 
-## It might interest you :)
+## It might be beneficial for your project :smile:
 
 go-model author also published following projects to Go Community.
 
-  * [aah framework](https://aahframework.org) - Web and API framework for Go.
+  * [aah framework](https://aahframework.org) - A secure, flexible, rapid Go web framework.
   * [go-resty](https://github.com/go-resty/resty) - Simple HTTP and REST client for Go.
 
 
