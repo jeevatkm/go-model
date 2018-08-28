@@ -1,8 +1,8 @@
-# go-model [![Stability: Sustained](https://masterminds.github.io/stability/sustained.svg)](https://masterminds.github.io/stability/sustained.html) [![Build Status](https://travis-ci.org/jeevatkm/go-model.svg?branch=master)](https://travis-ci.org/jeevatkm/go-model) [![codecov](https://codecov.io/gh/jeevatkm/go-model/branch/master/graph/badge.svg)](https://codecov.io/gh/jeevatkm/go-model/branch/master)  [![GoReport](https://goreportcard.com/badge/jeevatkm/go-model)](https://goreportcard.com/report/jeevatkm/go-model) [![Version](https://img.shields.io/badge/version-1.0-blue.svg)](https://github.com/jeevatkm/go-model/releases/latest)  [![GoDoc](https://godoc.org/github.com/jeevatkm/go-model?status.svg)](https://godoc.org/github.com/jeevatkm/go-model) [![License](https://img.shields.io/github/license/jeevatkm/go-model.svg)](LICENSE)
+# go-model [![Stability: Sustained](https://masterminds.github.io/stability/sustained.svg)](https://masterminds.github.io/stability/sustained.html) [![Build Status](https://travis-ci.org/jeevatkm/go-model.svg?branch=master)](https://travis-ci.org/jeevatkm/go-model) [![codecov](https://codecov.io/gh/jeevatkm/go-model/branch/master/graph/badge.svg)](https://codecov.io/gh/jeevatkm/go-model/branch/master)  [![GoReport](https://goreportcard.com/badge/jeevatkm/go-model)](https://goreportcard.com/report/jeevatkm/go-model) [![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/jeevatkm/go-model/releases/latest)  [![GoDoc](https://godoc.org/github.com/jeevatkm/go-model?status.svg)](https://godoc.org/github.com/jeevatkm/go-model) [![License](https://img.shields.io/github/license/jeevatkm/go-model.svg)](LICENSE)
 
 Robust & Easy to use model mapper and utility methods for Go `struct`. Typical methods increase productivity and make Go development more fun :smile:
 
-***v1.0 [released](https://github.com/jeevatkm/go-model/releases/latest) and tagged on May 22, 2017***
+***v1.1.0 [released](https://github.com/jeevatkm/go-model/releases/latest) and tagged on Aug 27, 2018***
 
 go-model tested with Go `v1.2` and above.
 
@@ -27,8 +27,13 @@ go-model library provides [handy methods](#supported-methods) to process `struct
 #### Stable Version - Production Ready
 Please refer section [Versioning](#versioning) for detailed info.
 
+**go.mod**
 ```sh
-# install the library
+require gopkg.in/jeevatkm/go-model.v1 v1.1.0
+```
+
+**go get**
+```sh
 go get -u gopkg.in/jeevatkm/go-model.v1
 ```
 
