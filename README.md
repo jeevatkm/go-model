@@ -37,17 +37,12 @@ require gopkg.in/jeevatkm/go-model.v1 v1.1.0
 go get -u gopkg.in/jeevatkm/go-model.v1
 ```
 
-#### Latest Version - Development Edge
-```sh
-# install the latest & greatest library
-go get -u github.com/jeevatkm/go-model
-```
-
 ## It might be beneficial for your project :smile:
 
 go-model author also published following projects to Go Community.
 
   * [aah framework](https://aahframework.org) - A secure, flexible, rapid Go web framework.
+  * [THUMBAI](https://thumbai.app), [Source Code](https://github.com/thumbai/thumbai) - Go Mod Repository, Go Vanity Service and Simple Proxy Server.
   * [go-resty](https://github.com/go-resty/resty) - Simple HTTP and REST client for Go.
 
 
